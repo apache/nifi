@@ -294,7 +294,7 @@ public final class EntityFactory {
     }
 
     public ProcessGroupEntity createProcessGroupEntity(final ProcessGroupDTO dto, final RevisionDTO revision, final PermissionsDTO permissions,
-                                                       final ProcessGroupStatusDTO status, final List<BulletinEntity> bulletins) {
+                                                       final ProcessGroupStatusDTO status, final ProcessGroupDrainSummaryDTO drainSummary, final List<BulletinEntity> bulletins) {
 
         final ProcessGroupEntity entity = new ProcessGroupEntity();
         entity.setRevision(revision);
@@ -321,6 +321,7 @@ public final class EntityFactory {
             entity.setLocallyModifiedAndStaleCount(dto.getLocallyModifiedAndStaleCount());
             entity.setSyncFailureCount(dto.getSyncFailureCount());
             entity.setResolvedExecutionEngine(dto.getResolvedExecutionEngine());
+            entity.setDrainSummary(drainSummary);
 
             final ParameterContextReferenceEntity parameterContextReference = dto.getParameterContext();
             if (parameterContextReference != null) {

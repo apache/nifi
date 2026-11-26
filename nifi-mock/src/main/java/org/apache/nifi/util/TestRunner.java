@@ -203,6 +203,22 @@ public interface TestRunner {
     void shutdown();
 
     /**
+     * Simulates the start of a drain of the Process Group that holds the Processor. Invokes all methods on the
+     * Processor that are annotated with the {@link org.apache.nifi.annotation.lifecycle.OnDrainInitiated @OnDrainInitiated}
+     * annotation, and the same methods on every enabled Controller Service. If any of these methods throws an
+     * Exception, the Unit Test will fail
+     */
+    void initiateDrain();
+
+    /**
+     * Simulates the end of a drain of the Process Group that holds the Processor. Invokes all methods on the
+     * Processor that are annotated with the {@link org.apache.nifi.annotation.lifecycle.OnDrainCompleted @OnDrainCompleted}
+     * annotation, and the same methods on every enabled Controller Service. If any of these methods throws an
+     * Exception, the Unit Test will fail
+     */
+    void completeDrain();
+
+    /**
      * Updates the number of threads that will be used to run the Processor when
      * calling the {@link #run()} or {@link #run(int)} methods.
      *

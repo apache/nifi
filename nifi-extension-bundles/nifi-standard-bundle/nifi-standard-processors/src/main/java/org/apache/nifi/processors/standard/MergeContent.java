@@ -42,6 +42,8 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.documentation.UseCase;
+import org.apache.nifi.annotation.lifecycle.OnDrainCompleted;
+import org.apache.nifi.annotation.lifecycle.OnDrainInitiated;
 import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -377,6 +379,10 @@ public class MergeContent extends BinFiles {
 
     public static final Pattern NUMBER_PATTERN = Pattern.compile("\\d+");
 
+    private static final int DRAINING_MAX_BIN_AGE_SECONDS = 1;
+
+    private volatile boolean draining = false;
+
     // Convenience method to make creation of property descriptors cleaner
     private static PropertyDescriptor addBinPackingDependency(final PropertyDescriptor original) {
         return new PropertyDescriptor.Builder().fromPropertyDescriptor(original).dependsOn(MERGE_STRATEGY, MergeStrategy.BIN_PACK).build();
@@ -385,6 +391,18 @@ public class MergeContent extends BinFiles {
     @Override
     public Set<Relationship> getRelationships() {
         return RELATIONSHIPS;
+    }
+
+    @OnDrainInitiated
+    public void onDrainInitiated(final ProcessContext context) {
+        draining = true;
+        updateMaxBinAge(context);
+    }
+
+    @OnDrainCompleted
+    public void onDrainCompleted(final ProcessContext context) {
+        draining = false;
+        updateMaxBinAge(context);
     }
 
     @Override
@@ -535,6 +553,20 @@ public class MergeContent extends BinFiles {
         // We haven't committed anything, parent will take care of it
         binProcessingResult.setCommitted(false);
         return binProcessingResult;
+    }
+
+    /**
+     * While the Process Group is being drained, a Bin-Packing bin is completed after at most 1 second so that partial bins
+     * do not hold up the drain. Defragment bins keep the configured age, because a timed-out Defragment bin is routed to failure.
+     */
+    @Override
+    protected int getMaxBinAgeSeconds(final PropertyContext context) {
+        final int configuredMaxBinAgeSeconds = super.getMaxBinAgeSeconds(context);
+        if (draining && context.getProperty(MERGE_STRATEGY).asAllowableValue(MergeStrategy.class) == MergeStrategy.BIN_PACK) {
+            return Math.min(configuredMaxBinAgeSeconds, DRAINING_MAX_BIN_AGE_SECONDS);
+        }
+
+        return configuredMaxBinAgeSeconds;
     }
 
     @Override

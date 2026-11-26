@@ -17,6 +17,9 @@
 package org.apache.nifi.groups;
 
 import org.apache.nifi.asset.AssetManager;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.connector.components.ComponentHierarchyScope;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
@@ -25,8 +28,10 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.ClusterTopologyProvider;
+import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.controller.ProcessScheduler;
+import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReloadComponent;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.flow.FlowManager;
@@ -35,6 +40,7 @@ import org.apache.nifi.controller.queue.DropFlowFileState;
 import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.QueueSize;
+import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.nar.ExtensionManager;
@@ -51,8 +57,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -62,8 +70,10 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -595,6 +605,46 @@ class StandardProcessGroupTest {
         when(statelessGroupNode.getCurrentState()).thenReturn(ScheduledState.STOPPED);
         runningGroup.setStatelessContentMaxHeapPercentage(50);
         assertEquals(50, runningGroup.getStatelessContentMaxHeapPercentage());
+    }
+
+    @Test
+    void testFindReferencedControllerServices() {
+        final PropertyDescriptor serviceProperty = new PropertyDescriptor.Builder().name("Service").identifiesControllerService(ControllerService.class).build();
+        final PropertyDescriptor unusedServiceProperty = new PropertyDescriptor.Builder().name("Unused Service").identifiesControllerService(ControllerService.class).build();
+        final ControllerServiceNode referencedService = mock(ControllerServiceNode.class);
+        final ControllerServiceNode requiredService = mock(ControllerServiceNode.class);
+        when(controllerServiceProvider.getControllerServiceNode("referenced")).thenReturn(referencedService);
+        lenient().when(controllerServiceProvider.getControllerServiceNode("unused")).thenReturn(mock(ControllerServiceNode.class));
+        when(referencedService.getRequiredControllerServices()).thenReturn(List.of(requiredService));
+
+        // The dependencies of the unused Service property are not satisfied, so the Service that it references is not included
+        final ValidationContext validationContext = mock(ValidationContext.class);
+        when(validationContext.isDependencySatisfied(eq(serviceProperty), any())).thenReturn(true);
+        final ProcessorNode processor = mock(ProcessorNode.class);
+        when(processor.getIdentifier()).thenReturn("processor");
+        when(processor.getPropertyDescriptors()).thenReturn(List.of(serviceProperty, unusedServiceProperty));
+        when(processor.getEffectivePropertyValue(serviceProperty)).thenReturn("referenced");
+        when(processor.getEffectivePropertyValue(unusedServiceProperty)).thenReturn("unused");
+        when(processor.createValidationContext(any(), any(), any(), anyBoolean())).thenReturn(validationContext);
+        processGroup.addProcessor(processor);
+
+        assertEquals(Set.of(referencedService, requiredService), processGroup.findReferencedControllerServices(ComponentHierarchyScope.IMMEDIATE_GROUP_ONLY));
+    }
+
+    @Test
+    void testVerifyCanBeginDrain() {
+        processGroup.setName(NAME);
+        final StandardProcessGroup childGroup = createStandardProcessGroup("child");
+        childGroup.setName("Child");
+        processGroup.addProcessGroup(childGroup);
+
+        processGroup.beginDrain("parent-drain");
+        assertThrows(IllegalStateException.class, processGroup::verifyCanBeginDrain);
+        assertThrows(IllegalStateException.class, childGroup::verifyCanBeginDrain);
+
+        processGroup.endDrain();
+        childGroup.beginDrain("child-drain");
+        assertThrows(IllegalStateException.class, processGroup::verifyCanBeginDrain);
     }
 
     private StandardProcessGroup createStandardProcessGroup(final String id) {

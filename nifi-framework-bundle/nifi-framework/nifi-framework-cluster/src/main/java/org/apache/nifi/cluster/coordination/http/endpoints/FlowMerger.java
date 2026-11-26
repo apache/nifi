@@ -22,6 +22,7 @@ import org.apache.nifi.cluster.manager.FunnelsEntityMerger;
 import org.apache.nifi.cluster.manager.LabelsEntityMerger;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.manager.PortsEntityMerger;
+import org.apache.nifi.cluster.manager.ProcessGroupEntityMerger;
 import org.apache.nifi.cluster.manager.ProcessGroupsEntityMerger;
 import org.apache.nifi.cluster.manager.ProcessorsEntityMerger;
 import org.apache.nifi.cluster.manager.RemoteProcessGroupsEntityMerger;
@@ -76,6 +77,8 @@ public class FlowMerger extends AbstractSingleDTOEndpoint<ProcessGroupFlowEntity
      * @param dtoMap the responses from all nodes
      */
     static void mergeProcessGroupFlowDto(final ProcessGroupFlowDTO clientDto, final Map<NodeIdentifier, ProcessGroupFlowDTO> dtoMap) {
+        clientDto.setDrainSummary(ProcessGroupEntityMerger.mergeDrainSummaries(dtoMap.values().stream().map(ProcessGroupFlowDTO::getDrainSummary).toList()));
+
         final FlowDTO flowDto = clientDto.getFlow();
         final Set<ConnectionEntity> clientConnections = flowDto.getConnections();
         final Set<ProcessorEntity> clientProcessors = flowDto.getProcessors();

@@ -28,6 +28,7 @@ import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.groups.ProcessGroupDrain;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Processor;
@@ -39,6 +40,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -57,7 +59,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -116,16 +120,28 @@ class StandardProcessorDAOTest {
     }
 
     @Test
-    void testVerifyUpdate_NormalStateChange() {
+    void testUpdateProcessorStartsProcessorAndEndsDrainThatKeepsItStopped() {
         // Processor in STOPPED state, trying to change to RUNNING
         ProcessorDTO processorDTO = new ProcessorDTO();
         processorDTO.setId("test-processor-id");
         processorDTO.setState("RUNNING");
 
         when(processorNode.getScheduledState()).thenReturn(ScheduledState.STOPPED);
+        dao.verifyUpdate(processorDTO);
+        dao.updateProcessor(processorDTO);
+        verify(processGroup).startProcessor(processorNode, true);
+        verify(processGroup, never()).endDrain();
 
-        // Should not throw exception
-        assertDoesNotThrow(() -> dao.verifyUpdate(processorDTO));
+        // A drain that keeps the processor stopped, and whose verification allows the start because no data is queued, is ended before the processor starts
+        final ProcessGroupDrain drain = mock(ProcessGroupDrain.class);
+        when(drain.getProcessGroup()).thenReturn(processGroup);
+        when(drain.keepsStopped(processorNode)).thenReturn(true);
+        when(processGroup.findActiveDrain()).thenReturn(Optional.of(drain));
+
+        dao.updateProcessor(processorDTO);
+        final InOrder inOrder = inOrder(processGroup);
+        inOrder.verify(processGroup).endDrain();
+        inOrder.verify(processGroup).startProcessor(processorNode, true);
     }
 
     @Test

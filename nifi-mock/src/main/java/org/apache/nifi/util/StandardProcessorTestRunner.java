@@ -20,6 +20,8 @@ import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.lifecycle.OnAdded;
 import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
+import org.apache.nifi.annotation.lifecycle.OnDrainCompleted;
+import org.apache.nifi.annotation.lifecycle.OnDrainInitiated;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -54,6 +56,7 @@ import org.junit.jupiter.api.Assertions;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -295,6 +298,39 @@ public class StandardProcessorTestRunner implements TestRunner {
             ReflectionUtils.invokeMethodsWithAnnotation(OnShutdown.class, processor);
         } catch (final Exception e) {
             Assertions.fail("Could not invoke methods annotated with @OnShutdown annotation due to: " + e);
+        }
+    }
+
+    @Override
+    public void initiateDrain() {
+        invokeDrainMethods(OnDrainInitiated.class);
+    }
+
+    @Override
+    public void completeDrain() {
+        invokeDrainMethods(OnDrainCompleted.class);
+    }
+
+    private void invokeDrainMethods(final Class<? extends Annotation> annotation) {
+        for (final ControllerServiceConfiguration configuration : context.getControllerServices().values()) {
+            if (!configuration.isEnabled()) {
+                continue;
+            }
+
+            final ControllerService service = configuration.getService();
+            try {
+                final MockConfigurationContext configContext = new MockConfigurationContext(service, configuration.getProperties(), context, environmentVariables);
+                configContext.setValidateExpressions(validateExpressionUsage);
+                ReflectionUtils.invokeMethodsWithAnnotation(annotation, service, configContext);
+            } catch (final Exception e) {
+                Assertions.fail("Could not invoke methods annotated with @" + annotation.getSimpleName() + " annotation on Controller Service " + service + " due to: " + e, e);
+            }
+        }
+
+        try {
+            ReflectionUtils.invokeMethodsWithAnnotation(annotation, processor, context);
+        } catch (final Exception e) {
+            Assertions.fail("Could not invoke methods annotated with @" + annotation.getSimpleName() + " annotation due to: " + e, e);
         }
     }
 

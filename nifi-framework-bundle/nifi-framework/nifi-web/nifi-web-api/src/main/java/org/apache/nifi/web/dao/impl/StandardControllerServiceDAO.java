@@ -24,6 +24,7 @@ import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
 import org.apache.nifi.controller.exception.ValidationException;
@@ -32,7 +33,9 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
+import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.groups.StatelessGroupScheduledState;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.logging.LogRepository;
@@ -56,11 +59,13 @@ import org.springframework.stereotype.Repository;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @Repository
@@ -224,7 +229,8 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
      * @param controllerService the controller service to disable
      */
     private void disableControllerServiceAndReferences(final ControllerServiceNode controllerService) {
-        // First, unschedule all referencing schedulable components (processors, reporting tasks, etc.)
+        // First, end any drain that keeps a referencing Processor running, then unschedule all referencing schedulable components (processors, reporting tasks, etc.)
+        applyToProcessorsChangingState(controllerService, ScheduledState.STOPPED, this::endDrainKeepingRunning, this::endDrainKeepingRunning);
         final Map<ComponentNode, Future<Void>> unscheduleFutures = serviceProvider.unscheduleReferencingComponents(controllerService);
 
         // Wait for all referencing components to stop
@@ -244,6 +250,45 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
 
         // Finally, disable the controller service itself
         serviceProvider.disableControllerService(controllerService);
+    }
+
+    /**
+     * Applies the given action to each referencing Processor whose state would change by moving to the target state. A Processor in a Stateless
+     * Process Group is started and stopped through its top-most Stateless group, so the group action is applied to that group instead, once per group.
+     */
+    private void applyToProcessorsChangingState(final ControllerServiceNode controllerService, final ScheduledState targetState,
+                                                final Consumer<ProcessorNode> processorAction, final Consumer<ProcessGroup> statelessGroupAction) {
+        final boolean starting = ScheduledState.RUNNING.equals(targetState);
+        final Set<ProcessGroup> statelessGroups = new HashSet<>();
+
+        for (final ProcessorNode processor : controllerService.getReferences().findRecursiveReferences(ProcessorNode.class)) {
+            if (starting && processor.getScheduledState() == ScheduledState.DISABLED) {
+                continue;
+            }
+
+            final ProcessGroup statelessGroup = findTopMostStatelessGroup(processor.getProcessGroup());
+            if (statelessGroup == null) {
+                final ScheduledState physicalState = processor.getPhysicalScheduledState();
+                final boolean running = physicalState == ScheduledState.RUNNING || physicalState == ScheduledState.STARTING;
+                if (starting != running) {
+                    processorAction.accept(processor);
+                }
+            } else {
+                final boolean running = statelessGroup.getStatelessScheduledState() == StatelessGroupScheduledState.RUNNING;
+                if (starting != running && statelessGroups.add(statelessGroup)) {
+                    statelessGroupAction.accept(statelessGroup);
+                }
+            }
+        }
+    }
+
+    private static ProcessGroup findTopMostStatelessGroup(final ProcessGroup start) {
+        ProcessGroup topMost = null;
+        for (ProcessGroup group = start; group != null && group.resolveExecutionEngine() == ExecutionEngine.STATELESS; group = group.getParent()) {
+            topMost = group;
+        }
+
+        return topMost;
     }
 
     private void updateBundle(final ControllerServiceNode controllerService, final ControllerServiceDTO controllerServiceDTO) {
@@ -281,8 +326,10 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
             }
         } else if (scheduledState != null) {
             if (ScheduledState.RUNNING.equals(scheduledState)) {
+                applyToProcessorsChangingState(controllerService, scheduledState, this::endDrainKeepingStopped, this::endDrainKeepingStopped);
                 return serviceProvider.scheduleReferencingComponents(controllerService);
             } else {
+                applyToProcessorsChangingState(controllerService, scheduledState, this::endDrainKeepingRunning, this::endDrainKeepingRunning);
                 return serviceProvider.unscheduleReferencingComponents(controllerService).keySet();
             }
         }
@@ -335,8 +382,10 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
         } else if (scheduledState != null) {
             if (ScheduledState.RUNNING.equals(scheduledState)) {
                 serviceProvider.verifyCanScheduleReferencingComponents(controllerService);
+                applyToProcessorsChangingState(controllerService, scheduledState, this::verifyDrainAllowsStart, this::verifyDrainAllowsStart);
             } else {
                 serviceProvider.verifyCanStopReferencingComponents(controllerService);
+                applyToProcessorsChangingState(controllerService, scheduledState, this::verifyDrainAllowsStop, this::verifyDrainAllowsStop);
             }
         }
     }
@@ -362,6 +411,8 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
 
                     if (ControllerServiceState.ENABLED.equals(purposedControllerServiceState)) {
                         controllerService.verifyCanEnable();
+                    } else {
+                        applyToProcessorsChangingState(controllerService, ScheduledState.STOPPED, this::verifyDrainAllowsStop, this::verifyDrainAllowsStop);
                     }
                     // Note: We don't call verifyCanDisable() here because we will automatically
                     // stop referencing components (processors, reporting tasks) and disable

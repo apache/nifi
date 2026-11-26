@@ -34,7 +34,7 @@ public class EntityFactoryTest {
         permissions.setCanRead(false);
         permissions.setCanWrite(false);
 
-        final ProcessGroupEntity entity = new EntityFactory().createProcessGroupEntity(dto, null, permissions, null, null);
+        final ProcessGroupEntity entity = new EntityFactory().createProcessGroupEntity(dto, null, permissions, null, null, null);
 
         assertEquals("STATELESS", entity.getResolvedExecutionEngine());
         assertNull(entity.getComponent());
@@ -50,7 +50,7 @@ public class EntityFactoryTest {
         permissions.setCanRead(true);
         permissions.setCanWrite(true);
 
-        final ProcessGroupEntity entity = new EntityFactory().createProcessGroupEntity(dto, null, permissions, null, null);
+        final ProcessGroupEntity entity = new EntityFactory().createProcessGroupEntity(dto, null, permissions, null, null, null);
 
         assertEquals("STANDARD", entity.getResolvedExecutionEngine());
         assertEquals(dto, entity.getComponent());

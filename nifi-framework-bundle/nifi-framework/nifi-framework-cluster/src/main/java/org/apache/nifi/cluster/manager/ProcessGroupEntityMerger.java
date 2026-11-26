@@ -19,12 +19,16 @@ package org.apache.nifi.cluster.manager;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.groups.StatelessGroupScheduledState;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
+import org.apache.nifi.web.api.dto.ProcessGroupDrainSummaryDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
 import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class ProcessGroupEntityMerger implements ComponentEntityMerger<ProcessGroupEntity>, ComponentEntityStatusMerger<ProcessGroupStatusDTO> {
@@ -34,6 +38,7 @@ public class ProcessGroupEntityMerger implements ComponentEntityMerger<ProcessGr
         ComponentEntityMerger.super.merge(clientEntity, entityMap);
 
         final Map<NodeIdentifier, ProcessGroupDTO> dtoMap = new HashMap<>();
+        final List<ProcessGroupDrainSummaryDTO> drainSummaries = new ArrayList<>();
         for (Map.Entry<NodeIdentifier, ProcessGroupEntity> entry : entityMap.entrySet()) {
             final ProcessGroupEntity entity = entry.getValue();
             if (entity != clientEntity) {
@@ -42,9 +47,45 @@ public class ProcessGroupEntityMerger implements ComponentEntityMerger<ProcessGr
             }
 
             dtoMap.put(entry.getKey(), entity.getComponent());
+            drainSummaries.add(entity.getDrainSummary());
         }
 
+        clientEntity.setDrainSummary(mergeDrainSummaries(drainSummaries));
+
         mergeDtos(clientEntity.getComponent(), dtoMap);
+    }
+
+    /**
+     * A node that restarted while the group was being drained has no record of the drain, so the summaries of the nodes that have one are combined.
+     * The drain is prepared only once it is prepared on each of those nodes.
+     *
+     * @return the combined summary, or null if no node has a summary
+     */
+    public static ProcessGroupDrainSummaryDTO mergeDrainSummaries(final Collection<ProcessGroupDrainSummaryDTO> drainSummaries) {
+        ProcessGroupDrainSummaryDTO mergedSummary = null;
+        for (final ProcessGroupDrainSummaryDTO drainSummary : drainSummaries) {
+            if (drainSummary == null) {
+                continue;
+            }
+
+            if (mergedSummary == null) {
+                mergedSummary = new ProcessGroupDrainSummaryDTO();
+                mergedSummary.setId(drainSummary.getId());
+                mergedSummary.setPrepared(true);
+                mergedSummary.setOriginalCount(0);
+                mergedSummary.setOriginalSize(0L);
+                mergedSummary.setCurrentCount(0);
+                mergedSummary.setCurrentSize(0L);
+            }
+
+            mergedSummary.setPrepared(mergedSummary.getPrepared() && Boolean.TRUE.equals(drainSummary.getPrepared()));
+            mergedSummary.setOriginalCount(mergedSummary.getOriginalCount() + drainSummary.getOriginalCount());
+            mergedSummary.setOriginalSize(mergedSummary.getOriginalSize() + drainSummary.getOriginalSize());
+            mergedSummary.setCurrentCount(mergedSummary.getCurrentCount() + drainSummary.getCurrentCount());
+            mergedSummary.setCurrentSize(mergedSummary.getCurrentSize() + drainSummary.getCurrentSize());
+        }
+
+        return mergedSummary;
     }
 
     private static void mergeDtos(final ProcessGroupDTO clientDto, final Map<NodeIdentifier, ProcessGroupDTO> dtoMap) {

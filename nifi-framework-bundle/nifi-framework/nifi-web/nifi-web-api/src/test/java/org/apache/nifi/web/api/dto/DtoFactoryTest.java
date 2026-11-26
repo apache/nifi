@@ -17,6 +17,8 @@
 package org.apache.nifi.web.api.dto;
 
 import org.apache.nifi.asset.Asset;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.bundle.BundleDetails;
@@ -32,18 +34,24 @@ import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
+import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.flow.ExecutionEngine;
+import org.apache.nifi.groups.DrainBlockingComponent;
 import org.apache.nifi.groups.FlowFileConcurrency;
 import org.apache.nifi.groups.FlowFileOutboundPolicy;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.ProcessGroupCounts;
+import org.apache.nifi.groups.ProcessGroupDrain;
+import org.apache.nifi.groups.ProcessGroupDrainState;
+import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.groups.StatelessGroupScheduledState;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.nar.ExtensionManager;
@@ -1183,6 +1191,34 @@ public class DtoFactoryTest {
 
         assertEquals("INHERITED", copy.getExecutionEngine());
         assertEquals("STATELESS", copy.getResolvedExecutionEngine());
+    }
+
+    @Test
+    void testCreateProcessGroupDrainRequestDtoReportsDetailsOnlyForReadableComponents() {
+        final ProcessGroup group = mock(ProcessGroup.class);
+        when(group.findProcessor("processor-1")).thenReturn(mock(ProcessorNode.class));
+
+        // A Remote Process Group Input Port is authorized through its Remote Process Group
+        final RemoteProcessGroup readableRemoteProcessGroup = mock(RemoteProcessGroup.class);
+        when(readableRemoteProcessGroup.isAuthorized(any(), eq(RequestAction.READ), any())).thenReturn(true);
+        when(group.findRemoteProcessGroup("remote-group-1")).thenReturn(readableRemoteProcessGroup);
+
+        final ProcessGroupDrain drain = mock(ProcessGroupDrain.class);
+        when(drain.getProcessGroup()).thenReturn(group);
+        when(drain.getState()).thenReturn(ProcessGroupDrainState.DRAINING);
+        when(drain.getOriginalQueueSize()).thenReturn(new QueueSize(7, 70L));
+        when(drain.getCurrentQueueSize()).thenReturn(new QueueSize(7, 70L));
+        when(drain.getBlockingComponents()).thenReturn(List.of(
+            new DrainBlockingComponent("processor-1", "Processor", ConnectableType.PROCESSOR, "pg-1", null, DrainBlockingComponent.Reason.INVALID, List.of("Property is required"), 3),
+            new DrainBlockingComponent("remote-port", "Remote Port", ConnectableType.REMOTE_INPUT_PORT, "pg-1", "remote-group-1", DrainBlockingComponent.Reason.INVALID, List.of("No such port"), 4)));
+
+        final DtoFactory dtoFactory = new DtoFactory();
+        dtoFactory.setAuthorizer(mock(Authorizer.class));
+        final List<DrainBlockingComponentDTO> blockingComponents = dtoFactory.createProcessGroupDrainRequestDto(drain).getBlockingComponents();
+        assertNull(blockingComponents.get(0).getName());
+        assertNull(blockingComponents.get(0).getValidationErrors());
+        assertEquals("Remote Port", blockingComponents.get(1).getName());
+        assertEquals(List.of("No such port"), blockingComponents.get(1).getValidationErrors());
     }
 
     private static ProcessGroup stubProcessGroup(final ExecutionEngine configured, final ExecutionEngine resolved) {

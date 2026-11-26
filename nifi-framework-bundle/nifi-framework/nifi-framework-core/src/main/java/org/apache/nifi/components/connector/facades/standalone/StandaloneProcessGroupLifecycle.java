@@ -17,32 +17,29 @@
 
 package org.apache.nifi.components.connector.facades.standalone;
 
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.connector.components.ComponentHierarchyScope;
 import org.apache.nifi.components.connector.components.ControllerServiceReferenceScope;
 import org.apache.nifi.components.connector.components.ProcessGroupLifecycle;
 import org.apache.nifi.components.connector.components.StatelessGroupLifecycle;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.Port;
-import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.groups.ProcessGroupDrain;
+import org.apache.nifi.groups.ProcessGroupDrainState;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -66,84 +63,9 @@ public class StandaloneProcessGroupLifecycle implements ProcessGroupLifecycle {
 
     @Override
     public CompletableFuture<Void> enableControllerServices(final ControllerServiceReferenceScope referenceScope, final ComponentHierarchyScope hierarchyScope) {
-        final boolean recursive = (hierarchyScope == ComponentHierarchyScope.INCLUDE_CHILD_GROUPS);
         final Set<ControllerServiceNode> controllerServices = (referenceScope == ControllerServiceReferenceScope.INCLUDE_ALL)
-            ? processGroup.findAllControllerServices() : findReferencedServices(recursive);
+            ? processGroup.findAllControllerServices() : processGroup.findReferencedControllerServices(hierarchyScope);
         return enableControllerServices(controllerServices);
-    }
-
-    public Set<ControllerServiceNode> findReferencedServices(final boolean recursive) {
-        final Set<ControllerServiceNode> referencedServices = new HashSet<>();
-        collectReferencedServices(processGroup, referencedServices, recursive);
-        return referencedServices;
-    }
-
-    private void collectReferencedServices(final ProcessGroup group, final Set<ControllerServiceNode> referencedServices, final boolean recursive) {
-        for (final ProcessorNode processor : group.getProcessors()) {
-            final ValidationContext validationContext = createValidationContext(processor);
-
-            for (final PropertyDescriptor descriptor : processor.getPropertyDescriptors()) {
-                if (descriptor.getControllerServiceDefinition() == null) {
-                    continue;
-                }
-
-                final String serviceId = processor.getEffectivePropertyValue(descriptor);
-                if (serviceId == null) {
-                    continue;
-                }
-
-                // Skip properties whose dependencies are not satisfied, as the property is not relevant to the component's functionality
-                if (!validationContext.isDependencySatisfied(descriptor, processor::getPropertyDescriptor)) {
-                    logger.debug("Not enabling Controller Service {} because it is referenced by {} property of {} whose dependencies are not satisfied",
-                        serviceId, descriptor.getName(), processor);
-                    continue;
-                }
-
-                final ControllerServiceNode serviceNode = controllerServiceProvider.getControllerServiceNode(serviceId);
-                if (serviceNode == null) {
-                    continue;
-                }
-
-                logger.debug("Marking {} as a Referenced Controller Service because it is referenced by {} property of {}",
-                    serviceNode, descriptor.getName(), processor);
-                referencedServices.add(serviceNode);
-            }
-        }
-
-        // Transitively collect services required by the already-referenced services.
-        // ControllerServiceNode.getRequiredControllerServices() already filters based on satisfied property dependencies.
-        while (true) {
-            final Set<ControllerServiceNode> newlyAddedServices = new HashSet<>();
-            for (final ControllerServiceNode service : referencedServices) {
-                for (final ControllerServiceNode requiredService : service.getRequiredControllerServices()) {
-                    if (!referencedServices.contains(requiredService)) {
-                        logger.debug("Marking {} as a Referenced Controller Service because it is required by {}",
-                            requiredService, service);
-                        newlyAddedServices.add(requiredService);
-                    }
-                }
-            }
-
-            referencedServices.addAll(newlyAddedServices);
-            if (newlyAddedServices.isEmpty()) {
-                break;
-            }
-        }
-
-        if (recursive) {
-            for (final ProcessGroup childGroup : group.getProcessGroups()) {
-                collectReferencedServices(childGroup, referencedServices, true);
-            }
-        }
-    }
-
-    private ValidationContext createValidationContext(final ComponentNode component) {
-        final Map<String, String> effectivePropertyValues = new LinkedHashMap<>();
-        for (final Map.Entry<PropertyDescriptor, String> entry : component.getEffectivePropertyValues().entrySet()) {
-            effectivePropertyValues.put(entry.getKey().getName(), entry.getValue());
-        }
-
-        return component.createValidationContext(effectivePropertyValues, component.getAnnotationData(), component.getParameterLookup(), false);
     }
 
     @Override
@@ -467,6 +389,24 @@ public class StandaloneProcessGroupLifecycle implements ProcessGroupLifecycle {
             total += getActiveThreadCount(childGroup);
         }
         return total;
+    }
+
+    @Override
+    public CompletableFuture<Void> beginDrain() {
+        final ProcessGroupDrain drain = processGroup.beginDrain(UUID.randomUUID().toString());
+        return drain.getPreparationFuture().thenCompose(ignored -> {
+            if (drain.getState() == ProcessGroupDrainState.FAILED) {
+                final String failureReason = drain.getFailureReason().orElse("Failed to begin draining " + processGroup);
+                return CompletableFuture.failedFuture(new IllegalStateException(failureReason));
+            }
+
+            return CompletableFuture.completedFuture(null);
+        });
+    }
+
+    @Override
+    public void endDrain() {
+        processGroup.endDrain();
     }
 
     @Override
