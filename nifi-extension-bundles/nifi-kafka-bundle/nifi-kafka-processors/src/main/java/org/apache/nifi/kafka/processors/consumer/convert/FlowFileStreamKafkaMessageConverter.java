@@ -64,10 +64,10 @@ public class FlowFileStreamKafkaMessageConverter implements KafkaMessageConverte
             final byte[] value = consumerRecord.getValue();
             FlowFile flowFile = session.create();
 
-            if (consumerRecord.getValue().length > 0) {
-                flowFile = session.write(flowFile, outputStream -> outputStream.write(value));
-            } else {
+            if (consumerRecord.isTombstone()) {
                 session.putAttribute(flowFile, KafkaFlowFileAttribute.KAFKA_TOMBSTONE, Boolean.TRUE.toString());
+            } else if (value.length > 0) {
+                flowFile = session.write(flowFile, outputStream -> outputStream.write(value));
             }
 
             final Map<String, String> attributes = KafkaUtils.toAttributes(
