@@ -64,6 +64,8 @@ import { PropertyItem } from './property-item';
 import { PropertyValueTip } from '../tooltips/property-value-tip/property-value-tip.component';
 import { PARAM_REF_REGEX } from '../utils/parameter.utils';
 
+const MIN_COMBO_EDITOR_WIDTH = 500;
+
 @Component({
     selector: 'property-table',
     templateUrl: './property-table.component.html',
@@ -466,7 +468,7 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
                 this.editorOpen = true;
 
                 if (this.hasAllowableValues(item)) {
-                    this.editorWidth = width + 50;
+                    this.editorWidth = Math.max(width + 50, MIN_COMBO_EDITOR_WIDTH);
                     this.editorOffsetX = 0;
                     this.editorOffsetY = 24;
                 } else {

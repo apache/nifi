@@ -52,6 +52,7 @@
                                 <mat-option
                                     [value]="allowableValue.id"
                                     [disabled]="readonly || allowableValue.disabled"
+                                    [attr.title]="allowableValue.displayName"
                                     (mousedown)="preventDrag($event)">
                                     <span
                                         class="option-text"
