@@ -250,8 +250,9 @@ public class StandardConnectorRepository implements ConnectorRepository {
         final boolean restoringTroubleshooting = effectiveScheduledState == VersionedConnectorState.TROUBLESHOOTING;
         // inheritConfiguration rebuilds the managed group from the loaded bundle. After a NAR upgrade the persisted
         // group still belongs to the previous bundle and may hold the queues the evolution hook has to drain, so that
-        // group has to be installed instead of rebuilt. A same-bundle sync keeps the rebuilt flow and the snapshot the
-        // Connector already holds.
+        // group has to be installed instead of rebuilt. When no group was persisted but the Connector was saved by another
+        // version, the Connector may supply that version's flow, which is installed in the same way. A same-bundle sync keeps
+        // the rebuilt flow and the snapshot the Connector already holds.
         final boolean evolutionPending;
         try {
             evolutionPending = connector.restorePendingFlowEvolution(versionedConnector, effectiveActiveConfig, effectiveWorkingConfig);

@@ -110,6 +110,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doNothing;
@@ -146,6 +147,7 @@ public class TestStandardConnectorNode {
     private FlowContextFactory flowContextFactory;
     private StateManagerProvider stateManagerProvider;
     private StartBlockingConnector startBlockingConnector;
+    private FrameworkConnectorInitializationContext initializationContext;
 
     @BeforeEach
     public void setUp() {
@@ -2734,6 +2736,106 @@ public class TestStandardConnectorNode {
         assertSame(persistedGroup, failingNode.getAuthoritativeFlowSnapshot().flow());
     }
 
+    @Test
+    public void testRestorePendingFlowEvolutionInstallsPreUpgradeFlowWhenNoManagedFlowPersisted() throws Exception {
+        final VersionedExternalFlow preUpgradeFlow = new VersionedExternalFlow();
+        preUpgradeFlow.setFlowContents(flowGroup("pre-upgrade"));
+        final FlowEvolutionHookConnector connector = new FlowEvolutionHookConnector();
+        connector.preUpgradeFlow = preUpgradeFlow;
+        final StandardConnectorNode connectorNode = createConnectorNode(connector);
+        final VersionedConfigurationStep activeStep = createVersionedConfigurationStep("settings", Map.of("Greeting", "Welcome"));
+
+        assertTrue(connectorNode.restorePendingFlowEvolution(connectorSavedBy(outgoingSnapshotBundle()), List.of(activeStep), List.of(activeStep)));
+
+        assertEquals(1, connector.preUpgradeFlowCalls);
+        assertEquals(outgoingSnapshotBundle(), connector.preUpgradeFlowBundle);
+        assertEquals("Welcome", connector.preUpgradeFlowGreeting);
+        verify(initializationContext).updateFlow(same(connectorNode.getActiveFlowContext()), same(preUpgradeFlow), eq(BundleCompatibility.RESOLVE_BUNDLE));
+        assertTrue(connectorNode.isPendingFlowEvolution());
+        assertFalse(connectorNode.isManagedFlowRestoreFailed());
+        assertEquals(0, connector.applyCalls);
+
+        final ConnectorFlowSnapshot snapshot = connectorNode.getAuthoritativeFlowSnapshot();
+        assertNotNull(snapshot.flow());
+        assertEquals(outgoingSnapshotBundle(), snapshot.bundle());
+        final ConnectorValueReference activeGreeting = snapshot.activeConfiguration().getNamedStepConfiguration("settings").configuration().getPropertyValue("Greeting");
+        assertEquals(new StringLiteralValue("Welcome"), activeGreeting);
+    }
+
+    @Test
+    public void testRestorePendingFlowEvolutionRebuildsFlowWhenNoPreUpgradeFlowApplies() throws Exception {
+        final FlowEvolutionHookConnector connector = new FlowEvolutionHookConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(connector);
+
+        // The Connector supplies no pre-upgrade flow
+        assertFalse(connectorNode.restorePendingFlowEvolution(connectorSavedBy(outgoingSnapshotBundle()), List.of(), List.of()));
+        assertEquals(1, connector.preUpgradeFlowCalls);
+        assertFalse(connectorNode.isPendingFlowEvolution());
+        assertNull(connectorNode.getAuthoritativeFlowSnapshot());
+
+        // The Connector is asked only for a different version of the loaded bundle
+        connector.preUpgradeFlow = new VersionedExternalFlow();
+        final Bundle loadedBundle = new Bundle("org.apache.nifi", "test-standard-connector-node", "1.0.0");
+        final Bundle otherArtifact = new Bundle("org.apache.nifi", "other-connector", "0.9.0");
+        for (final Bundle savedBundle : List.of(loadedBundle, otherArtifact)) {
+            assertFalse(connectorNode.restorePendingFlowEvolution(connectorSavedBy(savedBundle), List.of(), List.of()));
+        }
+
+        // A Connector that already holds its authoritative flow is not asked
+        connectorNode.adoptAuthoritativeSnapshot(flowGroup("current"), null, Map.of(), loadedBundle);
+        assertFalse(connectorNode.restorePendingFlowEvolution(connectorSavedBy(outgoingSnapshotBundle()), List.of(), List.of()));
+
+        assertEquals(1, connector.preUpgradeFlowCalls);
+        assertFalse(connectorNode.isPendingFlowEvolution());
+    }
+
+    @Test
+    public void testRestorePendingFlowEvolutionKeepsSavedBundleWhenPreUpgradeFlowCannotBeInstalled() throws Exception {
+        final FlowEvolutionHookConnector failingConnector = new FlowEvolutionHookConnector();
+        failingConnector.failPreUpgradeFlow = true;
+        final StandardConnectorNode failingNode = createConnectorNode(failingConnector);
+
+        assertTrue(failingNode.restorePendingFlowEvolution(connectorSavedBy(outgoingSnapshotBundle()), List.of(), List.of()));
+
+        assertTrue(failingNode.isManagedFlowRestoreFailed());
+        assertTrue(failingNode.isPendingFlowEvolution());
+        final IllegalStateException startFailure = assertThrows(IllegalStateException.class, failingNode::verifyCanStart);
+        assertTrue(startFailure.getMessage().contains("could not be restored"), startFailure.getMessage());
+        final ConnectorFlowSnapshot failedSnapshot = failingNode.getAuthoritativeFlowSnapshot();
+        assertNull(failedSnapshot.flow());
+        assertEquals(outgoingSnapshotBundle(), failedSnapshot.bundle());
+
+        // A flow that cannot be applied is handled in the same way
+        final FlowEvolutionHookConnector unappliedConnector = new FlowEvolutionHookConnector();
+        unappliedConnector.preUpgradeFlow = new VersionedExternalFlow();
+        final StandardConnectorNode unappliedNode = createConnectorNode(unappliedConnector);
+        doThrow(new FlowUpdateException("Intentional update failure")).when(initializationContext)
+            .updateFlow(any(FlowContext.class), any(VersionedExternalFlow.class), any(BundleCompatibility.class));
+
+        assertTrue(unappliedNode.restorePendingFlowEvolution(connectorSavedBy(outgoingSnapshotBundle()), List.of(), List.of()));
+        assertTrue(unappliedNode.isManagedFlowRestoreFailed());
+        assertNull(unappliedNode.getAuthoritativeFlowSnapshot().flow());
+        assertEquals(outgoingSnapshotBundle(), unappliedNode.getAuthoritativeFlowSnapshot().bundle());
+
+        // The next restart reads the saved bundle from the managed flow bundle, because the Connector bundle is saved as the loaded version
+        final FlowEvolutionHookConnector restartedConnector = new FlowEvolutionHookConnector();
+        restartedConnector.preUpgradeFlow = new VersionedExternalFlow();
+        final StandardConnectorNode restartedNode = createConnectorNode(restartedConnector);
+        final VersionedConnector savedAfterFailure = connectorSavedBy(new Bundle("org.apache.nifi", "test-standard-connector-node", "1.0.0"));
+        savedAfterFailure.setManagedFlowBundle(outgoingSnapshotBundle());
+
+        assertTrue(restartedNode.restorePendingFlowEvolution(savedAfterFailure, List.of(), List.of()));
+        assertEquals(outgoingSnapshotBundle(), restartedConnector.preUpgradeFlowBundle);
+        assertFalse(restartedNode.isManagedFlowRestoreFailed());
+        assertNotNull(restartedNode.getAuthoritativeFlowSnapshot().flow());
+    }
+
+    private static VersionedConnector connectorSavedBy(final Bundle bundle) {
+        final VersionedConnector persisted = new VersionedConnector();
+        persisted.setBundle(bundle);
+        return persisted;
+    }
+
     private static VersionedProcessGroup flowGroup(final String name) {
         final VersionedProcessGroup group = new VersionedProcessGroup();
         group.setName(name);
@@ -2888,7 +2990,7 @@ public class TestStandardConnectorNode {
             validationTrigger,
             false);
 
-        final FrameworkConnectorInitializationContext initializationContext = mock(FrameworkConnectorInitializationContext.class);
+        initializationContext = mock(FrameworkConnectorInitializationContext.class);
         when(initializationContext.getSecretsManager()).thenReturn(initializedSecretsManager);
         when(initializationContext.getAssetManager()).thenReturn(assetManager);
 

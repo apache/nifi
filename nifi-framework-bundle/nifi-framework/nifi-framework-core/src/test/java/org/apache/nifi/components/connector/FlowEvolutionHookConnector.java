@@ -26,6 +26,7 @@ import org.apache.nifi.flow.VersionedProcessGroup;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -33,7 +34,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Connector that counts its flow evolution hook, update preparation, apply and start calls. The hook can return a future
  * that never completes, and apply and start can each fail a given number of times. The active flow can carry a parameter
- * context or fail.
+ * context or fail. The pre-upgrade flow is the configured flow, or none, and the request records the bundle and the value
+ * of the {@code settings} step's {@code Greeting} property that it was given.
  */
 public class FlowEvolutionHookConnector extends AbstractConnector {
 
@@ -49,6 +51,11 @@ public class FlowEvolutionHookConnector extends AbstractConnector {
     volatile boolean failStepConfigured;
     volatile VersionedParameterContext activeFlowParameterContext;
     volatile boolean failActiveFlow;
+    volatile VersionedExternalFlow preUpgradeFlow;
+    volatile boolean failPreUpgradeFlow;
+    volatile int preUpgradeFlowCalls;
+    volatile Bundle preUpgradeFlowBundle;
+    volatile String preUpgradeFlowGreeting;
     final AtomicInteger startCalls = new AtomicInteger();
     final CountDownLatch hookEntered = new CountDownLatch(1);
     final CountDownLatch evolutionFuturePublished = new CountDownLatch(1);
@@ -126,5 +133,17 @@ public class FlowEvolutionHookConnector extends AbstractConnector {
         }
         evolutionFuturePublished.countDown();
         return evolutionFuture;
+    }
+
+    @Override
+    public Optional<VersionedExternalFlow> getPreUpgradeFlow(final FlowContext preUpgradeFlowContext) {
+        preUpgradeFlowCalls++;
+        preUpgradeFlowBundle = preUpgradeFlowContext.getBundle();
+        preUpgradeFlowGreeting = preUpgradeFlowContext.getConfigurationContext().getProperty("settings", "Greeting").getValue();
+        if (failPreUpgradeFlow) {
+            throw new IllegalStateException("Intentional pre-upgrade flow failure");
+        }
+
+        return Optional.ofNullable(preUpgradeFlow);
     }
 }
