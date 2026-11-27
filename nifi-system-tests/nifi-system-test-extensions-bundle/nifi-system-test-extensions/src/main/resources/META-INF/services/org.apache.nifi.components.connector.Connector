@@ -31,4 +31,6 @@ org.apache.nifi.connectors.tests.system.NestedProcessGroupConnector
 org.apache.nifi.connectors.tests.system.NonMigratingConnector
 org.apache.nifi.connectors.tests.system.NopConnector
 org.apache.nifi.connectors.tests.system.ParameterContextConnector
+org.apache.nifi.connectors.tests.system.ProviderMigrationConnector
+org.apache.nifi.connectors.tests.system.RequiredDefaultConnector
 org.apache.nifi.connectors.tests.system.SelectiveDropConnector
