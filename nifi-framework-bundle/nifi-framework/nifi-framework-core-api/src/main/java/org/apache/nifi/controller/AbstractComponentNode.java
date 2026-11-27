@@ -98,8 +98,6 @@ import java.util.stream.Collectors;
 public abstract class AbstractComponentNode implements ComponentNode {
     private static final String PERFORM_VALIDATION_STEP_NAME = "Perform Validation";
     private static final Logger logger = LoggerFactory.getLogger(AbstractComponentNode.class);
-    private static final String PARAMETER_CONTEXT_UPDATED_MSG = "Parameter Context updated, and property {} of {} does reference the updated Parameters. "
-        + "However, the overall property value remained unchanged so will not call onPropertyModified().";
 
     private final String id;
     private final ValidationContextFactory validationContextFactory;
@@ -1301,7 +1299,9 @@ public abstract class AbstractComponentNode implements ComponentNode {
                         logger.error("Failed to notify {} that property {} changed", this, propertyDescriptor, e);
                     }
                 } else {
-                    logger.debug(PARAMETER_CONTEXT_UPDATED_MSG, propertyDescriptor, this);
+                    logger.debug("""
+                        Parameter Context updated, and property {} of {} does reference the updated Parameters. However, the overall property value remained unchanged so will not call \
+                        onPropertyModified().""", propertyDescriptor, this);
                 }
             }
         }

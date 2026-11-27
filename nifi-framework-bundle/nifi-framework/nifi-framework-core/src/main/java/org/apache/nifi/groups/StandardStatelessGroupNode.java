@@ -89,9 +89,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 
 public class StandardStatelessGroupNode implements StatelessGroupNode {
-    private static final String MAX_CONCURRENT_TASKS_MSG = "Flow is configured to run using the Stateless Engine with {} max concurrent tasks. "
-        + "However, {} only allows a single concurrent task or allows running only on the Primary Node, so the flow will run with a single concurrent task";
-
     private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final Lock writeLock = rwLock.writeLock();
     private volatile ScheduledState currentState = ScheduledState.STOPPED;
@@ -209,7 +206,9 @@ public class StandardStatelessGroupNode implements StatelessGroupNode {
 
             final boolean triggerSerially = !triggerSeriallyProcessors.isEmpty();
             if (maxConcurrentTasks > 1 && triggerSerially) {
-                logger.warn(MAX_CONCURRENT_TASKS_MSG, maxConcurrentTasks, triggerSeriallyProcessors);
+                logger.warn("""
+                    Flow is configured to run using the Stateless Engine with {} max concurrent tasks. However, {} only allows a single concurrent task or allows running only on \
+                    the Primary Node, so the flow will run with a single concurrent task""", maxConcurrentTasks, triggerSeriallyProcessors);
             }
 
             // Perform setup in background thread outside of lock

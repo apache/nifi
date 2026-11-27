@@ -43,8 +43,6 @@ public class TroubleshootingTestWatcher implements TestWatcher, AfterTestExecuti
     private static final Logger logger = LoggerFactory.getLogger(TroubleshootingTestWatcher.class);
     private static final ExtensionContext.Namespace NAMESPACE = ExtensionContext.Namespace.create(TroubleshootingTestWatcher.class);
     private static final String QUARANTINE_DIR_KEY = "quarantineDir";
-    private static final String TROUBLESHOOTING_MSG = "While capturing troubleshooting info for {}, the NiFi Instance is not available. "
-            + "Will create a new one for Diagnostics purposes, but live diagnostics will not be available since it's not the same instance that ran the test";
 
     @Override
     public void afterTestExecution(final ExtensionContext context) {
@@ -124,7 +122,9 @@ public class TroubleshootingTestWatcher implements TestWatcher, AfterTestExecuti
         NiFiInstance instance = provider.getNiFiInstance();
 
         if (instance == null) {
-            logger.warn(TROUBLESHOOTING_MSG, methodName);
+            logger.warn("""
+                While capturing troubleshooting info for {}, the NiFi Instance is not available. Will create a new one for Diagnostics purposes, but live diagnostics will not be available \
+                since it's not the same instance that ran the test""", methodName);
             instance = provider.getInstanceFactory().createInstance();
         }
 

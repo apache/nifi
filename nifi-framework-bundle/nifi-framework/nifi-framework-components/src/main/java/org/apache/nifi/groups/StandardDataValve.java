@@ -42,10 +42,6 @@ public class StandardDataValve implements DataValve {
     private static final Logger logger = LoggerFactory.getLogger(StandardDataValve.class);
     private static final String GROUPS_WITH_DATA_FLOWING_IN_STATE_KEY = "groupsWithDataFlowingIn";
     private static final String GROUPS_WITH_DATA_FLOWING_OUT_STATE_KEY = "groupsWithDataFlowingOut";
-    private static final String FAILED_RECOVER_STATE_MSG = "Failed to recover state for {}. This could result in Process Groups "
-            + "configured with a FlowFile Concurrency of SINGLE_BATCH_PER_NODE to get data from multiple batches concurrently or stop ingesting data";
-    private static final String FAILED_STORE_STATE_MSG = "Failed to store state for {}. If NiFi is restarted before state is properly stored, this could result Process Groups configured with a "
-            + "FlowFile Concurrency of SINGLE_BATCH_PER_NODE to get data from multiple batches concurrently or stop ingesting data";
 
     private final ProcessGroup processGroup;
     private final StateManager stateManager;
@@ -311,7 +307,9 @@ public class StandardDataValve implements DataValve {
         try {
             stateMap = stateManager.getState(Scope.LOCAL);
         } catch (final Exception e) {
-            logger.error(FAILED_RECOVER_STATE_MSG, this, e);
+            logger.error("""
+                Failed to recover state for {}. This could result in Process Groups configured with a FlowFile Concurrency of SINGLE_BATCH_PER_NODE to get data from \
+                multiple batches concurrently or stop ingesting data""", this, e);
             return;
         }
 
@@ -349,7 +347,9 @@ public class StandardDataValve implements DataValve {
         try {
             stateManager.setState(stateValues, Scope.LOCAL);
         } catch (final Exception e) {
-            logger.error(FAILED_STORE_STATE_MSG, this, e);
+            logger.error("""
+                Failed to store state for {}. If NiFi is restarted before state is properly stored, this could result Process Groups configured with a \
+                FlowFile Concurrency of SINGLE_BATCH_PER_NODE to get data from multiple batches concurrently or stop ingesting data""", this, e);
         }
     }
 

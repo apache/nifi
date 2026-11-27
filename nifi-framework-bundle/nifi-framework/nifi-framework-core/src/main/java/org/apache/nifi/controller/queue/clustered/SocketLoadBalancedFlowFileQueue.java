@@ -105,8 +105,6 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
     private static final Comparator<NodeIdentifier> loadBalanceEndpointComparator =
         Comparator.comparing(NodeIdentifier::getLoadBalanceAddress)
             .thenComparing(NodeIdentifier::getLoadBalancePort);
-    private static final String EXPIRED_MSG = "Encountered {} expired FlowFiles but failed to update FlowFile Repository. "
-        + "These FlowFiles may re-appear in the queue after NiFi is restarted and will be expired again at that point.";
 
     private final List<FlowFilePrioritizer> prioritizers = new ArrayList<>();
     private final AtomicReference<QueueSize> totalSize = new AtomicReference<>(new QueueSize(0, 0L));
@@ -1107,7 +1105,9 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
 
             adjustSize(-expired.size(), -expired.stream().mapToLong(FlowFileRecord::getSize).sum());
         } catch (IOException e) {
-            logger.warn(EXPIRED_MSG, expiredRecords.size(), e);
+            logger.warn("""
+                    Encountered {} expired FlowFiles but failed to update FlowFile Repository. This FlowFiles may re-appear in the queue after NiFi is restarted and will be expired again at \
+                    that point.""", expiredRecords.size(), e);
         }
     }
 

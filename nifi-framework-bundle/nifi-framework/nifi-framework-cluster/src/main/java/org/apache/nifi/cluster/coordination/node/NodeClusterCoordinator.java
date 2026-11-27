@@ -104,8 +104,6 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     private static final Logger logger = LoggerFactory.getLogger(NodeClusterCoordinator.class);
     private static final String EVENT_CATEGORY = "Clustering";
     private static final Duration NODE_API_TIMEOUT = Duration.ofSeconds(10);
-    private static final String RECOVERING_STATE_MSG = "When recovering state, determined that two Node Identifiers claim to be the local Node Identifier: {} and {}. "
-            + "Will ignore both of these and wait until connecting to cluster to determine which Node Identifier is the local Node Identifier";
 
     private static final Pattern COUNTER_URI_PATTERN = Pattern.compile("/nifi-api/counters/[a-f0-9\\-]{36}");
 
@@ -190,7 +188,9 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
                     if (localNodeId == null) {
                         localNodeId = nodeId;
                     } else {
-                        logger.warn(RECOVERING_STATE_MSG, localNodeId.getFullDescription(), nodeId.getFullDescription());
+                        logger.warn("""
+                            When recovering state, determined that two Node Identifiers claim to be the local Node Identifier: {} and {}. Will ignore both of these and wait until \
+                            connecting to cluster to determine which Node Identifier is the local Node Identifier""", localNodeId.getFullDescription(), nodeId.getFullDescription());
                         localNodeId = null;
                     }
                 }

@@ -65,11 +65,6 @@ public class ProvenanceEventConsumer {
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 
-    private static final String BEGINNING_OF_STREAM_MSG = "Current provenance max id is {} which is less than what was stored in state as the last queried event, which was {}. "
-            + "This means the provenance restarted its ids. Restarting querying from the beginning.";
-    private static final String END_OF_STREAM_MSG = "Current provenance max id is {} which is less than what was stored in state as the last queried event, which was {}. "
-            + "This means the provenance restarted its ids. Restarting querying from the latest event in the Provenance Repository.";
-
     private String startPositionValue = PROVENANCE_START_POSITION.getDefaultValue();
     private Pattern componentTypeRegex;
     private Pattern componentTypeRegexExclude;
@@ -184,10 +179,14 @@ public class ProvenanceEventConsumer {
 
             if (currMaxId < (firstEventId - 1)) {
                 if (BEGINNING_OF_STREAM.getValue().equals(startPositionValue)) {
-                    logger.warn(BEGINNING_OF_STREAM_MSG, currMaxId, firstEventId);
+                    logger.warn("""
+                            Current provenance max id is {} which is less than what was stored in state as the last queried event, which was {}. This means the provenance restarted its \
+                            ids. Restarting querying from the beginning.""", currMaxId, firstEventId);
                     firstEventId = -1;
                 } else {
-                    logger.warn(END_OF_STREAM_MSG, currMaxId, firstEventId);
+                    logger.warn("""
+                            Current provenance max id is {} which is less than what was stored in state as the last queried event, which was {}. This means the provenance restarted its \
+                            ids. Restarting querying from the latest event in the Provenance Repository.""", currMaxId, firstEventId);
                     firstEventId = currMaxId;
                 }
             }

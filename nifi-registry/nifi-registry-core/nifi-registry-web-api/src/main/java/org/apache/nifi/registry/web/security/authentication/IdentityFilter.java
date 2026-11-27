@@ -42,8 +42,6 @@ import java.io.IOException;
 public class IdentityFilter extends GenericFilterBean {
 
     private static final Logger logger = LoggerFactory.getLogger(IdentityFilter.class);
-    private static final String CREDENTIALS_NOT_FOUND_MSG = "The {} did not find credentials it supports on the servlet request. " +
-            "Allowing this request to continue through the filter chain where another filter might authenticate it.";
 
     private final IdentityProvider identityProvider;
     private final AuthenticationManager authenticationManager;
@@ -98,7 +96,10 @@ public class IdentityFilter extends GenericFilterBean {
                     logger.debug("Authentication successful for {}", authenticated.getName());
                 }
             } else {
-                logger.debug(CREDENTIALS_NOT_FOUND_MSG, identityProvider.getClass().getSimpleName());
+                logger.debug("""
+                        The {} did not find credentials it supports on the servlet request. \
+                        Allowing this request to continue through the filter chain where another filter might authenticate it.""",
+                    identityProvider.getClass().getSimpleName());
             }
         } catch (final AuthenticationException e) {
             logger.info("Authentication failed for credentials extracted by {}: {}", identityProvider.getClass().getSimpleName(), e.getMessage());
