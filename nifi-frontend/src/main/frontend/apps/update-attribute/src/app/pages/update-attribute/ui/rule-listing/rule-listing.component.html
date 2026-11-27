@@ -36,7 +36,7 @@
                             class="fa fa-info-circle primary-color"
                             nifiTooltip
                             [tooltipComponentType]="TextTip"
-                            tooltipInputData="If disabled rules will be executed using a clone of the original FlowFile"></i>
+                            [tooltipInputData]=useOriginalFlowFileTooltip></i>
                     </div>
                     <form [formGroup]="flowFilePolicyForm">
                         <mat-slide-toggle
@@ -56,14 +56,20 @@
                 }
             </form>
             <div class="flex gap-x-1">
-                @if (flowFilePolicy === 'USE_ORIGINAL' && !reorderDisabled()) {
-                    <div class="flex gap-x-2 items-center">
+                <div class="flex gap-x-2 items-center">
+                    <div class="flex gap-x-1 items-center">
                         <div>Reorder rules</div>
-                        <mat-slide-toggle
-                            [checked]="allowRuleReordering"
-                            (change)="setAllowRuleReordering($event)"></mat-slide-toggle>
+                        <i
+                            class="fa fa-info-circle primary-color"
+                            nifiTooltip
+                            [tooltipComponentType]="TextTip"
+                            [tooltipInputData]="reorderTooltip"></i>
                     </div>
-                }
+                    <mat-slide-toggle
+                        [checked]="allowRuleReordering"
+                        [disabled]="!allowRuleReordering && reorderDisabled()"
+                        (change)="setAllowRuleReordering($event)"></mat-slide-toggle>
+                </div>
                 @if (!newRule) {
                     <button
                         mat-icon-button
@@ -93,7 +99,12 @@
                 [cdkDropListData]="rulesList"
                 (cdkDropListDropped)="reorderRules($event)">
                 @for (rule of filteredRulesList; track rule.id) {
-                    <mat-expansion-panel cdkDrag cdkDragPreviewContainer="parent">
+                    <mat-expansion-panel
+                        cdkDrag
+                        cdkDragPreviewContainer="parent"
+                        [expanded]="isExpanded(rule.id)"
+                        (opened)="panelOpened(rule.id)"
+                        (closed)="panelClosed(rule.id)">
                         <mat-expansion-panel-header
                             class="reorder-header"
                             [collapsedHeight]="'42px'"
@@ -126,8 +137,9 @@
                 @for (rule of filteredRulesList; track rule.id) {
                     <mat-expansion-panel
                         #expansionPanel
-                        (opened)="panelOpened()"
-                        (closed)="panelClosed()"
+                        [expanded]="isExpanded(rule.id)"
+                        (opened)="panelOpened(rule.id)"
+                        (closed)="panelClosed(rule.id)"
                         [disabled]="isDirty(rule.id)">
                         <mat-expansion-panel-header
                             class="editable-header"

@@ -170,14 +170,14 @@ If the FlowFile policy is set to "use original", then all matching rules are app
 there is only one outgoing FlowFile with all the attribute changes applied. In this case, the order of the rules matters
 and the action for each rule that matches will be applied in that order. If multiple rules contain actions that update
 the same attribute, the action from the last matching rule will take precedence. Notably, you can drag and drop the
-rules into a certain order within the Rules list once the FlowFile Policy is set to "use original" and the user has
-toggled the "Reorder rules" control. While in this reordering mode, other Rule modifications are not allowed.
+rules into a certain order within the Rules list once the user has toggled the "Reorder rules" control. While in this
+reordering mode, other Rule modifications are not allowed.
 
 **Filtering Rules**
 
 The Advanced UI supports the creation of an arbitrarily large number of rules. In order to manage large rule sets, the
-listing of rules may be filtered using the Filter mechanism in the lower left corner. Rules may be filtered by any text
-in the name, condition, or action.
+listing of rules may be filtered using the Search mechanism in the upper left corner. Rules may be filtered by any text
+in the name, comment, condition, or action.
 
 **Closing the Advanced UI**
 
