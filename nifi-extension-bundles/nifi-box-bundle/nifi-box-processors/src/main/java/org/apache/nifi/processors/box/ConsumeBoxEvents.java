@@ -93,7 +93,7 @@ public class ConsumeBoxEvents extends AbstractBoxProcessor implements Verifiable
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
-            .description("Events received successfully will be sent out this relationship.")
+            .description("Events received successfully will be transferred to this relationship.")
             .build();
 
     private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);

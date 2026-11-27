@@ -68,7 +68,7 @@ import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_MESSAGE_DES
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"box", "storage", "fetch", "folder", "files"})
-@CapabilityDescription("Fetches file metadata for each file in a Box Folder. Takes a flowFile with a folder ID attribute and outputs flowFiles with records containing all file metadata.")
+@CapabilityDescription("Fetches file metadata for each file in a Box Folder. Takes a FlowFile with a folder ID attribute and outputs FlowFiles with records containing all file metadata.")
 @SeeAlso({ListBoxFile.class, FetchBoxFile.class, PutBoxFile.class})
 @WritesAttributes({
         @WritesAttribute(attribute = "box.folder.id", description = "The ID of the folder from which files were fetched"),

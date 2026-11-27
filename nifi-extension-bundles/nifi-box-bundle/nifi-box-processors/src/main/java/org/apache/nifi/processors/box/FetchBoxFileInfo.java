@@ -64,7 +64,7 @@ import static org.apache.nifi.processors.box.BoxFileAttributes.TIMESTAMP_DESC;
         @WritesAttribute(attribute = ID, description = ID_DESC),
         @WritesAttribute(attribute = "filename", description = FILENAME_DESC),
         @WritesAttribute(attribute = "path", description = PATH_DESC),
-        @WritesAttribute(attribute = "box.path.folder.ids", description = "A comma separated list of file path_collection IDs"),
+        @WritesAttribute(attribute = "box.path.folder.ids", description = "A comma-separated list of file path_collection IDs"),
         @WritesAttribute(attribute = SIZE, description = SIZE_DESC),
         @WritesAttribute(attribute = TIMESTAMP, description = TIMESTAMP_DESC),
         @WritesAttribute(attribute = "box.created.at", description = "The creation date of the file"),

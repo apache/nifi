@@ -99,7 +99,7 @@ public class FetchBoxFileMetadataInstance extends AbstractBoxProcessor {
 
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
-            .description("A FlowFile will be routed here if there is an error fetching metadata instance from the file.")
+            .description("A FlowFile will be routed here if there is an error fetching the metadata instance from the file.")
             .build();
 
     public static final Relationship REL_FILE_NOT_FOUND = new Relationship.Builder()

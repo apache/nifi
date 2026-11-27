@@ -88,7 +88,7 @@ public class GetBoxGroupMembers extends AbstractBoxProcessor {
 
     static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
-            .description("The FlowFile will be routed here when Group memberships retrieval was attempted but failed.")
+            .description("The FlowFile will be routed here when retrieval of group memberships was attempted but failed.")
             .build();
 
     static final Relationship REL_NOT_FOUND = new Relationship.Builder()

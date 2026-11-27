@@ -77,7 +77,7 @@ public class ConsumeBoxEnterpriseEvents extends AbstractBoxProcessor {
 
     static final PropertyDescriptor EVENT_TYPES = new PropertyDescriptor.Builder()
             .name("Event Types")
-            .description("A comma separated list of Enterprise Events to consume. If not set, all Events are consumed." +
+            .description("A comma-separated list of Enterprise Events to consume. If not set, all Events are consumed. " +
                     "See Additional Details for more information.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -110,7 +110,7 @@ public class ConsumeBoxEnterpriseEvents extends AbstractBoxProcessor {
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
-            .description("Events received successfully will be sent out this relationship.")
+            .description("Events received successfully will be transferred to this relationship.")
             .build();
 
     private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);

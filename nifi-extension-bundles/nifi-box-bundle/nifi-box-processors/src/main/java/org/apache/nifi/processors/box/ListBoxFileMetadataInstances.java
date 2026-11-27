@@ -64,7 +64,7 @@ import static org.apache.nifi.processors.box.utils.BoxMetadataUtils.processBoxMe
         @WritesAttribute(attribute = "box.id", description = "The ID of the file from which metadata was fetched"),
         @WritesAttribute(attribute = "record.count", description = "The number of records in the FlowFile"),
         @WritesAttribute(attribute = "mime.type", description = "The MIME Type specified by the Record Writer"),
-        @WritesAttribute(attribute = "box.metadata.instances.names", description = "Comma-separated list of instances names"),
+        @WritesAttribute(attribute = "box.metadata.instances.names", description = "Comma-separated list of instance names"),
         @WritesAttribute(attribute = "box.metadata.instances.count", description = "Number of metadata instances found"),
         @WritesAttribute(attribute = ERROR_CODE, description = ERROR_CODE_DESC),
         @WritesAttribute(attribute = ERROR_MESSAGE, description = ERROR_MESSAGE_DESC)
@@ -82,7 +82,7 @@ public class ListBoxFileMetadataInstances extends AbstractBoxProcessor {
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
-            .description("A FlowFile containing the metadata instances records will be routed to this relationship upon successful processing.")
+            .description("A FlowFile containing the metadata instance records will be routed to this relationship upon successful processing.")
             .build();
 
     public static final Relationship REL_FAILURE = new Relationship.Builder()

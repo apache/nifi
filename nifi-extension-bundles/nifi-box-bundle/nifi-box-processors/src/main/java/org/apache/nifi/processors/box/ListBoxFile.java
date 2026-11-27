@@ -84,7 +84,7 @@ import static org.apache.nifi.processors.box.BoxFileAttributes.TIMESTAMP_DESC;
 public class ListBoxFile extends AbstractListProcessor<BoxFileInfo> {
     public static final PropertyDescriptor FOLDER_ID = new PropertyDescriptor.Builder()
         .name("Folder ID")
-        .description("The ID of the folder from which to pull list of files.")
+        .description("The ID of the folder from which to pull a list of files.")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .required(true)
@@ -92,7 +92,7 @@ public class ListBoxFile extends AbstractListProcessor<BoxFileInfo> {
 
     public static final PropertyDescriptor RECURSIVE_SEARCH = new PropertyDescriptor.Builder()
         .name("Search Recursively")
-        .description("When 'true', will include list of files from sub-folders." +
+        .description("When set to 'true', the processor will include a list of files from subfolders." +
             " Otherwise, will return only files that are within the folder defined by the 'Folder ID' property.")
         .required(true)
         .defaultValue("true")
