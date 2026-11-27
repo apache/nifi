@@ -86,6 +86,8 @@ import { ValidateJoltSpecRequest } from '../state/jolt-transform-json-validate';
 import { selectJoltTransformJsonPropertyState } from '../state/jolt-transform-json-property/jolt-transform-json-property.selectors';
 import { selectJoltTransformJsonValidateState } from '../state/jolt-transform-json-validate/jolt-transform-json-validate.selectors';
 import { selectJoltTransformJsonTransformState } from '../state/jolt-transform-json-transform/jolt-transform-json-transform.selectors';
+import { joltSpecJsonParseLinter } from './jolt-transform-json-linter';
+import { joltJson } from './jolt-transform-json-language';
 
 const JS_BEAUTIFY_OPTIONS = {
     indent_size: 2,
@@ -250,8 +252,8 @@ export class JoltTransformJsonUi implements OnDestroy {
             highlightActiveLine(),
             [highlightActiveLineGutter(), Prec.highest(lineNumbers())],
             foldGutter(),
-            json(),
-            linter(jsonParseLinter()),
+            joltJson(),
+            linter(joltSpecJsonParseLinter()),
             EditorView.contentAttributes.of({ 'aria-label': 'Jolt Specification Editor' }),
             keymap.of([
                 {
