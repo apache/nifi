@@ -308,7 +308,12 @@ public class StandardStatelessFlowCurrent implements StatelessFlowCurrent {
 
         // Trigger component
         logger.debug("Triggering {}", connectable);
-        connectable.onTrigger(processContext, sessionFactory);
+        try {
+            connectable.onTrigger(processContext, sessionFactory);
+        } catch (final Throwable t) {
+            executionProgress.notifyComponentTriggerFailed(connectable, t);
+            throw t;
+        }
     }
 
     private void registerProcessEvent(final Connectable connectable, final TrackedStats trackedStats) {
