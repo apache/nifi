@@ -45,7 +45,7 @@ import java.util.stream.Stream;
 import static org.apache.nifi.processors.aws.ml.textract.TextractType.DOCUMENT_ANALYSIS;
 
 @Tags({"Amazon", "AWS", "ML", "Machine Learning", "Textract"})
-@CapabilityDescription("Trigger a AWS Textract job. It should be followed by GetAwsTextractJobStatus processor in order to monitor job status.")
+@CapabilityDescription("Triggers an AWS Textract job. It should be followed by GetAwsTextractJobStatus processor in order to monitor job status.")
 @WritesAttributes({
         @WritesAttribute(attribute = "awsTaskId", description = "The task ID that can be used to poll for Job completion in GetAwsTextractJobStatus"),
         @WritesAttribute(attribute = "awsTextractType", description = "The selected Textract type, which can be used in GetAwsTextractJobStatus")

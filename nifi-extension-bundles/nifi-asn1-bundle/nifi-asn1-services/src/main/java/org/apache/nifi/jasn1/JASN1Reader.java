@@ -145,7 +145,7 @@ public class JASN1Reader extends AbstractConfigurableComponent implements Record
 
     static final PropertyDescriptor SCHEMA_PREPARATION_STRATEGY = new PropertyDescriptor.Builder()
         .name("Schema Preparation Strategy")
-        .description("When set, NiFi will do additional preprocessing steps that creates modified versions of the provided ASN files," +
+        .description("When set, NiFi will do additional preprocessing steps that create modified versions of the provided ASN files," +
                 " removing unsupported features in a way that makes them less strict but otherwise should still be compatible with incoming data." +
                 " The original files will remain intact and new ones will be created with the same names in the directory defined in the 'Additional Preprocessing Output Directory' property." +
                 " For more information about these additional preprocessing steps please see Additional Details - Additional Preprocessing.")

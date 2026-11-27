@@ -75,7 +75,7 @@ import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
         "Inserts items into DynamoDB based on record-oriented data. " +
         "The record fields are mapped into DynamoDB item fields, including partition and sort keys if set. " +
         "Depending on the number of records the processor might execute the insert in multiple chunks in order to overcome DynamoDB's limitation on batch writing. " +
-        "This might result partially processed FlowFiles in which case the FlowFile will be transferred to the \"unprocessed\" relationship " +
+        "This might result in partially processed FlowFiles in which case the FlowFile will be transferred to the \"unprocessed\" relationship " +
         "with the necessary attribute to retry later without duplicating the already executed inserts."
 )
 @WritesAttributes({

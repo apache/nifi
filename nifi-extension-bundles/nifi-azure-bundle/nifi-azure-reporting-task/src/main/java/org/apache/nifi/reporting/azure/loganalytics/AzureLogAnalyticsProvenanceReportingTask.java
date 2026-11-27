@@ -53,7 +53,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @Tags({ "azure", "provenance", "reporting", "log analytics" })
-@CapabilityDescription("Publishes Provenance events to a Azure Log Analytics workspace.")
+@CapabilityDescription("Publishes Provenance events to an Azure Log Analytics workspace.")
 public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAnalyticsReportingTask {
 
     protected static final String LAST_EVENT_ID_KEY = "last_event_id";
@@ -126,7 +126,7 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
     static final PropertyDescriptor FILTER_COMPONENT_ID = new PropertyDescriptor.Builder()
             .name("Component ID to Include")
             .description("""
-                    Comma-separated list of component UUID that will be used to filter the provenance events sent by the reporting task.
+                    Comma-separated list of component UUIDs that will be used to filter the provenance events sent by the reporting task.
                     If no filter is set, all the events are sent. If multiple filters are set, the filters are cumulative.""")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -136,7 +136,7 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
     static final PropertyDescriptor FILTER_COMPONENT_ID_EXCLUDE = new PropertyDescriptor.Builder()
             .name("Component ID to Exclude")
             .description("""
-                    Comma-separated list of component UUID that will be used to exclude the provenance events sent by the reporting task.
+                    Comma-separated list of component UUIDs that will be used to exclude the provenance events sent by the reporting task.
                     If no filter is set, all the events are sent. If multiple filters are set, the filters are cumulative. If a component UUID is included in
                     Component ID to Include and excluded here, then the exclusion takes precedence and the event will not be sent.""")
             .required(false)

@@ -113,8 +113,8 @@ import static org.apache.nifi.processors.transfer.ResourceTransferUtils.getFileR
 @WritesAttributes({
     @WritesAttribute(attribute = "s3.url", description = "The URL that can be used to access the S3 object"),
     @WritesAttribute(attribute = "s3.bucket", description = "The S3 bucket where the Object was put in S3"),
-    @WritesAttribute(attribute = "s3.key", description = "The S3 key within where the Object was put in S3"),
-    @WritesAttribute(attribute = "s3.contenttype", description = "The S3 content type of the S3 Object that put in S3"),
+    @WritesAttribute(attribute = "s3.key", description = "The S3 key under which the object was stored"),
+    @WritesAttribute(attribute = "s3.contenttype", description = "The S3 content type of the S3 Object that was put in S3"),
     @WritesAttribute(attribute = "s3.version", description = "The version of the S3 Object that was put to S3"),
     @WritesAttribute(attribute = "s3.exception", description = "The class name of the exception thrown during processor execution"),
     @WritesAttribute(attribute = "s3.additionalDetails", description = "The S3 supplied detail from the failed operation"),
@@ -165,7 +165,7 @@ public class PutS3Object extends AbstractS3Processor {
     public static final PropertyDescriptor CONTENT_DISPOSITION = new PropertyDescriptor.Builder()
             .name("Content Disposition")
             .description("Sets the Content-Disposition HTTP header indicating if the content is intended to be displayed inline or should be downloaded.\n " +
-                    "Possible values are 'inline' or 'attachment'. If this property is not specified, object's content-disposition will be set to filename. " +
+                    "Possible values are 'inline' or 'attachment'. If this property is not specified, object's content-disposition will be set to the filename. " +
                     "When 'attachment' is selected, '; filename=' plus object key are automatically appended to form final value 'attachment; filename=\"filename.jpg\"'.")
             .required(false)
             .allowableValues(CONTENT_DISPOSITION_INLINE, CONTENT_DISPOSITION_ATTACHMENT)

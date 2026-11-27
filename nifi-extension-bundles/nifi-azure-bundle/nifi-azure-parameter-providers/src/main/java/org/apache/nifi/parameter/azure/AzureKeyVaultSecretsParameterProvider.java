@@ -50,7 +50,7 @@ import java.util.regex.Pattern;
  * @see <a href="https://learn.microsoft.com/en-us/azure/key-vault/secrets/quick-create-cli">Azure Key Vault Secrets</a>
  */
 @Tags({"azure", "keyvault", "key", "vault", "secrets"})
-@CapabilityDescription("Fetches parameters from Azure Key Vault Secrets.  Each secret becomes a Parameter, which map to a Parameter Group by" +
+@CapabilityDescription("Fetches parameters from Azure Key Vault Secrets.  Each secret becomes a Parameter, which map to a Parameter Group by " +
         "adding a secret tag named 'group-name'.")
 public class AzureKeyVaultSecretsParameterProvider extends AbstractParameterProvider implements VerifiableParameterProvider {
     public static final PropertyDescriptor AZURE_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()

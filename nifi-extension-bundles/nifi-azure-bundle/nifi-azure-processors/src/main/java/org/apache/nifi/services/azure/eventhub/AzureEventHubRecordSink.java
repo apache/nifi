@@ -79,7 +79,7 @@ public class AzureEventHubRecordSink extends AbstractControllerService implement
 
     static final PropertyDescriptor EVENT_HUB_NAMESPACE = new PropertyDescriptor.Builder()
             .name("Event Hub Namespace")
-            .description("Provides provides the host for connecting to Azure Event Hubs")
+            .description("Provides the host for connecting to Azure Event Hubs")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(true)
             .build();

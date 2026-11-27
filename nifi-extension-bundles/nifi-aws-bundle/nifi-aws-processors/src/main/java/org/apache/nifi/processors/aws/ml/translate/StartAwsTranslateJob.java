@@ -31,7 +31,7 @@ import software.amazon.awssdk.services.translate.model.StartTextTranslationJobRe
 import software.amazon.awssdk.services.translate.model.StartTextTranslationJobResponse;
 
 @Tags({"Amazon", "AWS", "ML", "Machine Learning", "Translate"})
-@CapabilityDescription("Trigger a AWS Translate job. It should be followed by GetAwsTranslateJobStatus processor in order to monitor job status.")
+@CapabilityDescription("Triggers an AWS Translate job. It should be followed by GetAwsTranslateJobStatus processor in order to monitor job status.")
 @WritesAttributes({
         @WritesAttribute(attribute = "awsTaskId", description = "The task ID that can be used to poll for Job completion in GetAwsTranslateJobStatus")
 })

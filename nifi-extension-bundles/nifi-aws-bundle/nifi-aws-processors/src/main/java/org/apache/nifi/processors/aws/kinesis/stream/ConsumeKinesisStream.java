@@ -128,7 +128,7 @@ import static org.apache.nifi.processors.aws.region.RegionUtil.getRegion;
         " or a FlowFile for a batch of processed records if a Record Reader and Record Writer are configured. " +
         "At-least-once delivery of all Kinesis Records within the Stream while the processor is running. " +
         "AWS Kinesis Client Library can take several seconds to initialise before starting to fetch data. " +
-        "Uses DynamoDB for check pointing and CloudWatch (optional) for metrics. " +
+        "Uses DynamoDB for checkpointing and CloudWatch (optional) for metrics. " +
         "Ensure that the credentials provided have access to DynamoDB and CloudWatch (optional) along with Kinesis.")
 @WritesAttributes({
         @WritesAttribute(attribute = AbstractKinesisRecordProcessor.AWS_KINESIS_PARTITION_KEY,

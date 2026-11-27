@@ -31,7 +31,7 @@ import software.amazon.awssdk.services.transcribe.model.StartTranscriptionJobReq
 import software.amazon.awssdk.services.transcribe.model.StartTranscriptionJobResponse;
 
 @Tags({"Amazon", "AWS", "ML", "Machine Learning", "Transcribe"})
-@CapabilityDescription("Trigger a AWS Transcribe job. It should be followed by GetAwsTranscribeStatus processor in order to monitor job status.")
+@CapabilityDescription("Triggers an AWS Transcribe job. It should be followed by GetAwsTranscribeStatus processor in order to monitor job status.")
 @WritesAttributes({
         @WritesAttribute(attribute = "awsTaskId", description = "The task ID that can be used to poll for Job completion in GetAwsTranscribeJobStatus")
 })

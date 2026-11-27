@@ -124,7 +124,7 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         .build();
     public static final PropertyDescriptor HEADER_KEY_PREFIX = new PropertyDescriptor.Builder()
         .name("Header Key Prefix")
-        .description("Text to be prefixed to header keys as they are added to the FlowFile attributes. Processor will append '.' to the value of this property")
+        .description("Text to be prefixed to header keys as they are added to the FlowFile attributes. The processor will append '.' to the value of this property")
         .defaultValue(DEFAULT_HEADERS_KEY_PREFIX)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .dependsOn(HEADER_FORMAT, OutputHeaderFormat.ATTRIBUTES)
@@ -133,7 +133,7 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
 
     public static final PropertyDescriptor HEADER_SEPARATOR = new PropertyDescriptor.Builder()
         .name("Header Separator")
-        .description("The character that is used to separate key-value for header in String. The value must be only one character."
+        .description("The character that is used to separate a header key and value in a string. The value must be only one character."
                 )
         .addValidator(StandardValidators.SINGLE_CHAR_VALIDATOR)
         .defaultValue(",")
@@ -142,7 +142,7 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         .build();
     static final PropertyDescriptor REMOVE_CURLY_BRACES = new PropertyDescriptor.Builder()
         .name("Remove Curly Braces")
-        .description("If true Remove Curly Braces, Curly Braces in the header will be automatically remove.")
+        .description("If true, curly braces in the header will be removed automatically.")
         .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
         .defaultValue("False")
         .allowableValues("True", "False")

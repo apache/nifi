@@ -57,7 +57,7 @@ import java.util.stream.Stream;
 @Tags({"azure", "cosmos", "insert", "record", "put"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("This processor is a record-aware processor for inserting data into Cosmos DB with Core SQL API. It uses a configured record reader and " +
-        "schema to read an incoming record set from the body of a Flowfile and then inserts those records into " +
+        "schema to read an incoming record set from the body of a FlowFile and then inserts those records into " +
         "a configured Cosmos DB Container.")
 @SystemResourceConsideration(resource = SystemResource.MEMORY)
 public class PutAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {

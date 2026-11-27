@@ -57,8 +57,8 @@ import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"Amazon", "DynamoDB", "AWS", "Put", "Insert"})
 @CapabilityDescription("Puts a document from DynamoDB based on hash and range key.  The table can have either hash and range or hash key alone."
-    + " Currently the keys supported are string and number and value can be json document. "
-    + "In case of hash and range keys both key are required for the operation."
+    + " Currently the supported key types are strings and numbers and the value can be a json document."
+    + " In case of hash and range keys, both keys are required for the operation."
     + " The FlowFile content must be JSON. FlowFile content is mapped to the specified Json Document attribute in the DynamoDB item.")
 @WritesAttributes({
     @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_UNPROCESSED, description = "DynamoDB unprocessed keys"),

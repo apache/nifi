@@ -44,7 +44,7 @@ import java.util.concurrent.TimeUnit;
 
 @Tags({"schema", "registry", "apicurio", "avro"})
 @CapabilityDescription("Provides a Schema Registry that interacts with the Apicurio Schema Registry so that those Schemas that are stored in the Apicurio Schema "
-        + "Registry can be used in NiFi. When a Schema is looked up by name by this registry, it will find a Schema in the Apicurio Schema Registry with their artifact identifiers.")
+        + "Registry can be used in NiFi. When a Schema is looked up by name by this registry, it will find a Schema in the Apicurio Schema Registry with its artifact identifier.")
 public class ApicurioSchemaRegistry extends AbstractControllerService implements SchemaRegistry {
 
     private static final Set<SchemaField> schemaFields = EnumSet.of(SchemaField.SCHEMA_NAME, SchemaField.SCHEMA_TEXT,

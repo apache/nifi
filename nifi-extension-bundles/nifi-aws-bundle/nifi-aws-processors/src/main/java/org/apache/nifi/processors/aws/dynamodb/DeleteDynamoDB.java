@@ -53,7 +53,7 @@ import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
 @SeeAlso({GetDynamoDB.class, PutDynamoDB.class, PutDynamoDBRecord.class})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"Amazon", "DynamoDB", "AWS", "Delete", "Remove"})
-@CapabilityDescription("Deletes a document from DynamoDB based on hash and range key. The key can be string or number."
+@CapabilityDescription("Deletes a document from DynamoDB based on hash and range key. The key can be a string or a number."
         + " The request requires all the primary keys for the operation (hash or hash and range key)")
 @WritesAttributes({
     @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_UNPROCESSED, description = "DynamoDB unprocessed keys"),

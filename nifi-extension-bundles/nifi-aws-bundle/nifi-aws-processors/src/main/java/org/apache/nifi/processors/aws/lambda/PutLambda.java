@@ -59,7 +59,7 @@ import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"amazon", "aws", "lambda", "put"})
 @CapabilityDescription("Sends the contents to a specified Amazon Lambda Function. "
-    + "The AWS credentials used for authentication must have permissions execute the Lambda function (lambda:InvokeFunction)."
+    + "The AWS credentials used for authentication must have permission to execute the Lambda function (lambda:InvokeFunction)."
     + "The FlowFile content must be JSON.")
 @WritesAttributes({
     @WritesAttribute(attribute = "aws.lambda.result.function.error", description = "Function error message in result on posting message to AWS Lambda"),
