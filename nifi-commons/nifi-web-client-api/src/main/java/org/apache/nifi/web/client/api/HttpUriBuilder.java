@@ -70,11 +70,23 @@ public interface HttpUriBuilder {
     HttpUriBuilder addPathSegment(String pathSegment);
 
     /**
-     * Add query parameter using specified name and value
+     * Add query parameter using specified name and value without encoding reserved characters.
+     * Characters that are not legal in a URI query are quoted, but reserved characters such as
+     * {@code &}, {@code =} and {@code +} are preserved, so callers must encode name and value when required.
      *
      * @param name Query parameter name
      * @param value Query parameter value can be null
      * @return Builder
      */
     HttpUriBuilder addQueryParameter(String name, String value);
+
+    /**
+     * Add query parameter using specified unencoded name and value, encoding all reserved characters
+     * according to URL standard requirements
+     *
+     * @param name Unencoded query parameter name
+     * @param value Unencoded query parameter value can be null
+     * @return Builder
+     */
+    HttpUriBuilder addUnencodedQueryParameter(String name, String value);
 }
