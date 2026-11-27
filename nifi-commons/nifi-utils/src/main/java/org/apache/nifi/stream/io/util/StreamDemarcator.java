@@ -34,6 +34,8 @@ public class StreamDemarcator extends AbstractDemarcator {
 
     private final byte[] delimiterBytes;
 
+    private final int[] delimiterPrefixLengths;
+
     /**
      * Constructs a new instance
      *
@@ -82,6 +84,7 @@ public class StreamDemarcator extends AbstractDemarcator {
         super(is, maxDataSize, initialBufferSize);
         this.validate(delimiterBytes);
         this.delimiterBytes = delimiterBytes;
+        this.delimiterPrefixLengths = getDelimiterPrefixLengths(delimiterBytes);
     }
 
     /**
@@ -105,12 +108,13 @@ public class StreamDemarcator extends AbstractDemarcator {
                     byteVal = this.buffer[i];
 
                     boolean delimiterFound = false;
-                    if (this.delimiterBytes != null && this.delimiterBytes[j] == byteVal) {
-                        if (++j == this.delimiterBytes.length) {
+                    if (this.delimiterBytes != null) {
+                        while (j > 0 && this.delimiterBytes[j] != byteVal) {
+                            j = this.delimiterPrefixLengths[j - 1];
+                        }
+                        if (this.delimiterBytes[j] == byteVal && ++j == this.delimiterBytes.length) {
                             delimiterFound = true;
                         }
-                    } else {
-                        j = 0;
                     }
 
                     if (delimiterFound) {
@@ -131,6 +135,32 @@ public class StreamDemarcator extends AbstractDemarcator {
         }
 
         return token;
+    }
+
+    /**
+     * Get lengths of the longest proper prefix of the delimiter that is also a suffix of each partial delimiter match,
+     * used to continue matching after a mismatch without reading bytes again
+     *
+     * @param delimiterBytes Delimiter bytes or null
+     * @return Prefix lengths indexed by number of matched delimiter bytes minus one, or null when delimiter not provided
+     */
+    private static int[] getDelimiterPrefixLengths(final byte[] delimiterBytes) {
+        if (delimiterBytes == null) {
+            return null;
+        }
+
+        final int[] prefixLengths = new int[delimiterBytes.length];
+        int prefixLength = 0;
+        for (int i = 1; i < delimiterBytes.length; i++) {
+            while (prefixLength > 0 && delimiterBytes[i] != delimiterBytes[prefixLength]) {
+                prefixLength = prefixLengths[prefixLength - 1];
+            }
+            if (delimiterBytes[i] == delimiterBytes[prefixLength]) {
+                prefixLength++;
+            }
+            prefixLengths[i] = prefixLength;
+        }
+        return prefixLengths;
     }
 
     /**
