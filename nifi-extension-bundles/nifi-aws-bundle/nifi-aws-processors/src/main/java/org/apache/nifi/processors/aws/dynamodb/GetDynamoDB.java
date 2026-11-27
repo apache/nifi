@@ -60,9 +60,9 @@ import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
 @SeeAlso({DeleteDynamoDB.class, PutDynamoDB.class, PutDynamoDBRecord.class})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"Amazon", "DynamoDB", "AWS", "Get", "Fetch"})
-@CapabilityDescription("Retrieves a document from DynamoDB based on hash and range key.  The key can be string or number."
-        + "For any get request all the primary keys are required (hash or hash and range based on the table keys)."
-        + "A Json Document ('Map') attribute of the DynamoDB item is read into the content of the FlowFile.")
+@CapabilityDescription("Retrieves a document from DynamoDB based on hash and range key.  The key can be a string or a number."
+        + " For any get request all the primary keys are required (hash or hash and range based on the table keys)."
+        + " A Json Document ('Map') attribute of the DynamoDB item is read into the content of the FlowFile.")
 @WritesAttributes({
     @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_UNPROCESSED, description = "DynamoDB unprocessed keys"),
     @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_RANGE_KEY_VALUE_ERROR, description = "DynamoDB range key error"),

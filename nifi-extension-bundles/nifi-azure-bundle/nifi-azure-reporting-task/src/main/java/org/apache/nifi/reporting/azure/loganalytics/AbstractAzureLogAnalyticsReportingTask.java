@@ -96,7 +96,7 @@ public abstract class AbstractAzureLogAnalyticsReportingTask extends AbstractRep
     static final PropertyDescriptor PROCESS_GROUP_IDS = new PropertyDescriptor.Builder()
             .name("Process Group IDs")
             .description("""
-                    If specified, the reporting task will send metrics the configured ProcessGroup(s) only.
+                    If specified, the reporting task will send metrics for only the configured ProcessGroup(s).
                     Multiple IDs should be separated by a comma. If none of the group-IDs could be found or
                     no IDs are defined, the Root Process Group is used and global metrics are sent.""")
             .required(false)

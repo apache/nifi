@@ -34,7 +34,7 @@ import java.util.Set;
 import java.util.UUID;
 
 @Tags({"schema", "registry", "aws", "avro", "glue"})
-@CapabilityDescription("Reads Schema Identifier according to AWS Glue Schema encoding as a header consisting of a two byte markers and a 16 byte UUID")
+@CapabilityDescription("Reads Schema Identifier according to AWS Glue Schema encoding as a header consisting of a two-byte marker and a 16 byte UUID")
 public class AmazonGlueEncodedSchemaReferenceReader extends AbstractControllerService implements SchemaReferenceReader {
 
     private final GlueSchemaRegistryDeserializerDataParser deserializerDataParser = GlueSchemaRegistryDeserializerDataParser.getInstance();

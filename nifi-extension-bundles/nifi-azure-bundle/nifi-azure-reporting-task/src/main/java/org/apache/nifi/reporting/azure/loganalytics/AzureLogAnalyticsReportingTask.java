@@ -42,8 +42,8 @@ import java.util.List;
  * ReportingTask to send metrics from Apache NiFi and JVM to Azure Monitor.
  */
 @Tags({ "azure", "metrics", "reporting", "log analytics" })
-@CapabilityDescription("Sends JVM-metrics as well as Apache NiFi-metrics to a Azure Log Analytics workspace."
-        + "Apache NiFi-metrics can be either configured global or on process-group level.")
+@CapabilityDescription("Sends JVM-metrics as well as Apache NiFi-metrics to an Azure Log Analytics workspace. "
+        + "Apache NiFi-metrics can be either configured globally or on process-group level.")
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 public class AzureLogAnalyticsReportingTask extends AbstractAzureLogAnalyticsReportingTask {
 

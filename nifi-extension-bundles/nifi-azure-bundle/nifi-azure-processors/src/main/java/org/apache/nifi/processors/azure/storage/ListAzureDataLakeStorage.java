@@ -81,7 +81,7 @@ import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR
 @TriggerSerially
 @Tags({"azure", "microsoft", "cloud", "storage", "adlsgen2", "datalake"})
 @SeeAlso({PutAzureDataLakeStorage.class, DeleteAzureDataLakeStorage.class, FetchAzureDataLakeStorage.class})
-@CapabilityDescription("Lists directory in an Azure Data Lake Storage Gen 2 filesystem")
+@CapabilityDescription("Lists a directory in an Azure Data Lake Storage Gen 2 filesystem")
 @WritesAttributes({
         @WritesAttribute(attribute = ATTR_NAME_FILESYSTEM, description = ATTR_DESCRIPTION_FILESYSTEM),
         @WritesAttribute(attribute = ATTR_NAME_FILE_PATH, description = ATTR_DESCRIPTION_FILE_PATH),

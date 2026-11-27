@@ -26,7 +26,7 @@ import org.apache.nifi.processor.exception.ProcessException;
  * {@code AzureCredentialsService} interface to support getting a {@code TokenCredential} used for instantiating Azure clients
  */
 @Tags({"azure", "security", "credentials", "provider", "session"})
-@CapabilityDescription("Provide credentials to use with an Azure clients.")
+@CapabilityDescription("Provide credentials for use with Azure clients.")
 public interface AzureCredentialsService extends ControllerService {
     /**
      * Get credentials to use with an Azure client

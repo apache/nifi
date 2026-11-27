@@ -55,7 +55,7 @@ public class DeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageProc
 
     public static final PropertyDescriptor FILESYSTEM_OBJECT_TYPE = new PropertyDescriptor.Builder()
             .name("Filesystem Object Type")
-            .description("They type of the file system object to be deleted. It can be either folder or file.")
+            .description("The type of the file system object to be deleted. It can be either folder or file.")
             .allowableValues(FS_TYPE_FILE, FS_TYPE_DIRECTORY)
             .defaultValue(FS_TYPE_FILE)
             .required(true)

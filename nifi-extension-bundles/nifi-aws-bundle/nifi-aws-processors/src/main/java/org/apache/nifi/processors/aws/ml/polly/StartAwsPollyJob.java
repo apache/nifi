@@ -31,7 +31,7 @@ import software.amazon.awssdk.services.polly.model.StartSpeechSynthesisTaskReque
 import software.amazon.awssdk.services.polly.model.StartSpeechSynthesisTaskResponse;
 
 @Tags({"Amazon", "AWS", "ML", "Machine Learning", "Polly"})
-@CapabilityDescription("Trigger a AWS Polly job. It should be followed by GetAwsPollyJobStatus processor in order to monitor job status.")
+@CapabilityDescription("Triggers an AWS Polly job. It should be followed by GetAwsPollyJobStatus processor in order to monitor job status.")
 @WritesAttributes({
         @WritesAttribute(attribute = "awsTaskId", description = "The task ID that can be used to poll for Job completion in GetAwsPollyJobStatus")
 })

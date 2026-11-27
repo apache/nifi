@@ -80,7 +80,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 @Tags({"azure", "microsoft", "cloud", "eventhub", "events", "streaming", "streams"})
 @CapabilityDescription("Receives messages from Microsoft Azure Event Hubs without reliable checkpoint tracking. "
-        + "In clustered environment, GetAzureEventHub processor instances work independently and all cluster nodes process all messages "
+        + "In a clustered environment, GetAzureEventHub processor instances work independently and all cluster nodes process all messages "
         + "(unless running the processor in Primary Only mode). "
         + "ConsumeAzureEventHub offers the recommended approach to receiving messages from Azure Event Hubs. "
         + "This processor creates a thread pool for connections to Azure Event Hubs.")

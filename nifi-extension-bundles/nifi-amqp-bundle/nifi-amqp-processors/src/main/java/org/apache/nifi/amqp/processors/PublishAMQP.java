@@ -81,7 +81,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
     public static final PropertyDescriptor EXCHANGE = new PropertyDescriptor.Builder()
             .name("Exchange Name")
             .description("The name of the AMQP Exchange the messages will be sent to. Usually provided by the AMQP administrator (e.g., 'amq.direct'). "
-                    + "It is an optional property. If kept empty the messages will be sent to a default AMQP exchange.")
+                    + "It is an optional property. If left empty, the messages will be sent to a default AMQP exchange.")
             .required(true)
             .defaultValue("")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -90,7 +90,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
     public static final PropertyDescriptor ROUTING_KEY = new PropertyDescriptor.Builder()
             .name("Routing Key")
             .description("The name of the Routing Key that will be used by AMQP to route messages from the exchange to a destination queue(s). "
-                    + "Usually provided by the administrator (e.g., 'myKey')In the event when messages are sent to a default exchange this property "
+                    + "Usually provided by the administrator (e.g., 'myKey'). In the event that messages are sent to a default exchange this property "
                     + "corresponds to a destination queue name, otherwise a binding from the Exchange to a Queue via Routing Key must be set "
                     + "(usually by the AMQP administrator)")
             .required(true)
@@ -132,7 +132,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
     public static final PropertyDescriptor HEADERS_PATTERN = new PropertyDescriptor.Builder()
             .name("Headers Pattern")
             .description("Regular expression that will be evaluated against the FlowFile attributes to select the matching attributes and put as AMQP headers. "
-                + "Attribute name will be used as header key.")
+                + "Attribute name will be used as the header key.")
             .required(true)
             .dependsOn(HEADERS_SOURCE, InputHeaderSource.FLOWFILE_ATTRIBUTES)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -141,7 +141,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
             .build();
     public static final PropertyDescriptor HEADER_SEPARATOR = new PropertyDescriptor.Builder()
             .name("Header Separator")
-            .description("The character that is used to split key-value for headers. The value must only one character. "
+            .description("The character that is used to split key-value for headers. The value must be only one character. "
                     + "Otherwise you will get an error message")
             .defaultValue(",")
             .dependsOn(HEADERS_SOURCE, InputHeaderSource.AMQP_HEADERS_ATTRIBUTE)

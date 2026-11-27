@@ -42,7 +42,7 @@ import java.util.List;
  * @see AbstractControllerService
  */
 @Tags({"azure", "security", "credentials", "provider", "session"})
-@CapabilityDescription("Provide credentials to use with an Azure client.")
+@CapabilityDescription("Provide credentials for use with an Azure client.")
 public class StandardAzureCredentialsControllerService extends AbstractControllerService implements AzureCredentialsService {
     public static final AllowableValue DEFAULT_CREDENTIAL = new AllowableValue("default-credential",
             "Default Credential",

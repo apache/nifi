@@ -107,7 +107,7 @@ public class GetS3ObjectMetadata extends AbstractS3Processor {
 
     static final Relationship REL_NOT_FOUND = new Relationship.Builder()
             .name("not found")
-            .description("No object was found in the bucket the supplied key")
+            .description("No object was found in the bucket at the supplied key")
             .build();
 
     private static final Set<Relationship> RELATIONSHIPS = Set.of(

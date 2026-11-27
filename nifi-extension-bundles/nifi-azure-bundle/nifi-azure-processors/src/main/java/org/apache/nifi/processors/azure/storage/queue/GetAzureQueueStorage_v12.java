@@ -55,7 +55,7 @@ import static org.apache.nifi.processors.azure.storage.queue.AbstractAzureQueueS
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"azure", "queue", "microsoft", "storage", "dequeue", "cloud"})
 @CapabilityDescription("Retrieves the messages from an Azure Queue Storage. The retrieved messages will be deleted from the queue by default. If the requirement is " +
-        "to consume messages without deleting them, set 'Auto Delete Messages' to 'false'. Note: There might be chances of receiving duplicates in situations like " +
+        "to consume messages without deleting them, set 'Auto Delete Messages' to 'false'. Note: There might be a chance of receiving duplicates in situations like " +
         "when a message is received but was unable to be deleted from the queue due to some unexpected situations.")
 @WritesAttributes({
         @WritesAttribute(attribute = URI_ATTRIBUTE, description = "The absolute URI of the configured Azure Queue Storage"),

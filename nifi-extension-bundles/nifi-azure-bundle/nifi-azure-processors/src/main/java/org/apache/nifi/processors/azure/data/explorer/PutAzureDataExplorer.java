@@ -116,7 +116,7 @@ public class PutAzureDataExplorer extends AbstractProcessor {
 
     public static final PropertyDescriptor IGNORE_FIRST_RECORD = new PropertyDescriptor.Builder()
             .name("Ingestion Ignore First Record")
-            .description("Defines whether ignore first record while ingestion.")
+            .description("Defines whether to ignore the first record during ingestion.")
             .required(true)
             .allowableValues(Boolean.TRUE.toString(), Boolean.FALSE.toString())
             .defaultValue(Boolean.FALSE.toString())
@@ -134,7 +134,7 @@ public class PutAzureDataExplorer extends AbstractProcessor {
 
     public static final PropertyDescriptor INGEST_STATUS_POLLING_TIMEOUT = new PropertyDescriptor.Builder()
             .name("Ingest Status Polling Timeout")
-            .description("Defines the total amount time to poll for ingestion status")
+            .description("Defines the total amount of time to poll for ingestion status")
             .required(true)
             .dependsOn(POLL_FOR_INGEST_STATUS, Boolean.TRUE.toString())
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
@@ -143,7 +143,7 @@ public class PutAzureDataExplorer extends AbstractProcessor {
 
     public static final PropertyDescriptor INGEST_STATUS_POLLING_INTERVAL = new PropertyDescriptor.Builder()
             .name("Ingest Status Polling Interval")
-            .description("Defines the value of interval of time to poll for ingestion status")
+            .description("Defines the interval at which to poll for ingestion status")
             .required(true)
             .dependsOn(POLL_FOR_INGEST_STATUS, Boolean.TRUE.toString())
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)

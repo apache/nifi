@@ -115,7 +115,7 @@ import static org.apache.nifi.processors.azure.eventhub.checkpoint.CheckpointSto
 @CapabilityDescription("Receives messages from Microsoft Azure Event Hubs with checkpointing to ensure consistent event processing. "
         + "Checkpoint tracking avoids consuming a message multiple times and enables reliable resumption of processing in the event of intermittent network failures. "
         + "Checkpoint tracking requires external storage and provides the preferred approach to consuming messages from Azure Event Hubs. "
-        + "In clustered environment, ConsumeAzureEventHub processor instances form a consumer group and the messages are distributed among the cluster nodes "
+        + "In a clustered environment, ConsumeAzureEventHub processor instances form a consumer group and the messages are distributed among the cluster nodes "
         + "(each message is processed on one cluster node only).")
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @Stateful(scopes = {Scope.LOCAL, Scope.CLUSTER}, description = "Local state is used to store the client id. " +
@@ -216,7 +216,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
             .name("Record Reader")
             .description("The Record Reader to use for reading received messages." +
-                    " The event hub name can be referred by Expression Language '${eventhub.name}' to access a schema.")
+                    " The event hub name can be referred to in Expression Language '${eventhub.name}' to access a schema.")
             .identifiesControllerService(RecordReaderFactory.class)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(false)
@@ -224,7 +224,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
     static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
             .name("Record Writer")
             .description("The Record Writer to use for serializing Records to an output FlowFile." +
-                    " The event hub name can be referred by Expression Language '${eventhub.name}' to access a schema." +
+                    " The event hub name can be referred to in Expression Language '${eventhub.name}' to access a schema." +
                     " If not specified, each message will create a FlowFile.")
             .identifiesControllerService(RecordSetWriterFactory.class)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)

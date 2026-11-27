@@ -108,7 +108,7 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
             .name("Base Temporary Path")
             .description("The Path where the temporary directory will be created. The Path name cannot contain a leading '/'." +
                     " The root directory can be designated by the empty string value. Non-existing directories will be created." +
-                    "The Temporary File Directory name is " + TEMP_FILE_DIRECTORY)
+                    " The Temporary File Directory name is " + TEMP_FILE_DIRECTORY)
             .defaultValue("")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(new DirectoryValidator("Base Temporary Path"))
