@@ -21,7 +21,8 @@ import { ProcessGroupRenderContext } from '../render-context.types';
 import { createBaseRenderContextFixture } from '../render-context-fixtures';
 import { RegistryClientEntity } from '../../../../state/shared';
 import { CanvasProcessGroup } from '../../canvas.types';
-import { BulletinEntity, ComponentType } from '@nifi/shared';
+import { BulletinEntity, ComponentType, NiFiCommon } from '@nifi/shared';
+import { DrainSummaryTip } from '../../../tooltips/drain-summary-tip/drain-summary-tip.component';
 
 /**
  * Test setup options for ProcessGroupRenderer tests
@@ -45,6 +46,7 @@ function createMockProcessGroup(
             position?: { x: number; y: number };
             permissions?: { canRead?: boolean; canWrite?: boolean };
             versionedFlowState?: string | null;
+            drainSummary?: CanvasProcessGroup['entity']['drainSummary'];
             component?: {
                 name?: string;
                 comments?: string;
@@ -96,6 +98,7 @@ function createMockProcessGroup(
                 canWrite: entityOverrides.permissions?.canWrite ?? true
             },
             versionedFlowState: entityOverrides.versionedFlowState ?? null,
+            drainSummary: entityOverrides.drainSummary,
             component: {
                 name: entityOverrides.component?.name ?? 'Test Process Group',
                 comments: entityOverrides.component?.comments ?? '',
@@ -163,7 +166,7 @@ function createMockContext(options: SetupOptions = {}): ProcessGroupRenderContex
                 })
             },
             formatUtils: {},
-            nifiCommon: {}
+            nifiCommon: new NiFiCommon()
         }),
         componentUtils: {
             bulletins: vi.fn(),
@@ -766,6 +769,86 @@ describe('ProcessGroupRenderer', () => {
                 const queuedSize = getProcessGroupElements().select('text.process-group-queued tspan.size');
                 expect(queuedCount.text()).toBe('100');
                 expect(queuedSize.text()).toBe(' (1.5 MB)');
+
+                cleanup();
+            });
+
+            it('should show the draining badge with a tooltip when a drain is active', async () => {
+                const pg = createMockProcessGroup({
+                    entity: {
+                        drainSummary: {
+                            id: 'drain-1',
+                            prepared: true,
+                            originalCount: 1,
+                            originalSize: 1,
+                            currentCount: 1,
+                            currentSize: 1
+                        }
+                    }
+                });
+                const { context, getProcessGroupElements, cleanup } = await setup({
+                    processGroups: [pg]
+                });
+
+                getProcessGroupElements().classed('visible', true);
+                ProcessGroupRenderer.render(context);
+
+                const badge = getProcessGroupElements().select('g.process-group-draining-badge');
+                expect(badge.style('visibility')).toBe('visible');
+                expect(badge.select('text.process-group-draining-badge-label').text()).toBe('Draining');
+                expect(context.componentUtils.canvasTooltip).toHaveBeenCalledWith(
+                    DrainSummaryTip,
+                    expect.anything(),
+                    pg.entity.drainSummary
+                );
+
+                cleanup();
+            });
+
+            it('should hide the draining badge when no drain is active', async () => {
+                const pg = createMockProcessGroup();
+                const { context, getProcessGroupElements, cleanup } = await setup({
+                    processGroups: [pg]
+                });
+
+                getProcessGroupElements().classed('visible', true);
+                ProcessGroupRenderer.render(context);
+
+                const badge = getProcessGroupElements().select('g.process-group-draining-badge');
+                expect(badge.style('visibility')).toBe('hidden');
+                expect(context.componentUtils.canvasTooltip).not.toHaveBeenCalledWith(
+                    DrainSummaryTip,
+                    expect.anything(),
+                    expect.anything()
+                );
+
+                cleanup();
+            });
+
+            it('should show the draining badge when the process group is not readable', async () => {
+                const pg = createMockProcessGroup({
+                    entity: {
+                        permissions: { canRead: false },
+                        drainSummary: {
+                            id: 'drain-1',
+                            prepared: true,
+                            originalCount: 1,
+                            originalSize: 1,
+                            currentCount: 1,
+                            currentSize: 1
+                        }
+                    }
+                });
+                const { context, getProcessGroupElements, cleanup } = await setup({
+                    processGroups: [pg]
+                });
+
+                getProcessGroupElements().classed('visible', true);
+                ProcessGroupRenderer.render(context);
+
+                expect(getProcessGroupElements().select('g.process-group-draining-badge').style('visibility')).toBe(
+                    'visible'
+                );
 
                 cleanup();
             });

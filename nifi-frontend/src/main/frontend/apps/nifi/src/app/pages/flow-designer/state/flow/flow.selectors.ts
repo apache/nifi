@@ -76,6 +76,11 @@ export const selectResolvedExecutionEngine = createSelector(
     (state: FlowState) => state.flow.processGroupFlow.resolvedExecutionEngine
 );
 
+export const selectCurrentProcessGroupDrainSummary = createSelector(
+    selectFlowState,
+    (state: FlowState) => state.flow.processGroupFlow.drainSummary ?? null
+);
+
 export const selectProcessGroupIdFromRoute = createSelector(selectCurrentRoute, (route) => {
     if (route) {
         // always select the process group from the route

@@ -37,6 +37,8 @@ import { parameterFeatureKey } from '../state/parameter';
 import * as fromParameter from '../state/parameter/parameter.reducer';
 import { flowAnalysisFeatureKey } from '../state/flow-analysis';
 import * as fromFlowAnalysis from '../state/flow-analysis/flow-analysis.reducer';
+import { processGroupDrainFeatureKey } from '../state/process-group-drain';
+import * as fromProcessGroupDrain from '../state/process-group-drain/process-group-drain.reducer';
 import * as FlowActions from '../state/flow/flow.actions';
 import { ComponentType, NiFiCommon } from '@nifi/shared';
 
@@ -55,7 +57,8 @@ describe('CanvasActionsService', () => {
         [transformFeatureKey]: fromTransform.initialState,
         [controllerServicesFeatureKey]: fromControllerServices.initialState,
         [parameterFeatureKey]: fromParameter.initialState,
-        [flowAnalysisFeatureKey]: fromFlowAnalysis.initialState
+        [flowAnalysisFeatureKey]: fromFlowAnalysis.initialState,
+        [processGroupDrainFeatureKey]: fromProcessGroupDrain.initialState
     };
 
     beforeEach(() => {

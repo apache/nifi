@@ -21,7 +21,15 @@ import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../../state';
 import { CanvasUtils } from '../../../../service/canvas-utils.service';
 import { initialState } from '../../../../state/flow/flow.reducer';
-import { ComponentType, Storage, ComponentContext } from '@nifi/shared';
+import {
+    ComponentContext,
+    ComponentType,
+    NiFiCommon,
+    ProcessGroupDrainSummary,
+    StatusBadge,
+    Storage
+} from '@nifi/shared';
+import { getDrainingTooltip, getOperationDrainSummary } from '../../../../../../ui/common/drain/drain-summary.utils';
 import { BreadcrumbEntity } from '../../../../../../state/shared';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -33,7 +41,7 @@ import { CanvasActionsService } from '../../../../service/canvas-actions.service
 @Component({
     selector: 'operation-control',
     templateUrl: './operation-control.component.html',
-    imports: [MatButtonModule, MatTooltipModule, ComponentContext],
+    imports: [MatButtonModule, MatTooltipModule, ComponentContext, StatusBadge],
     styleUrls: ['./operation-control.component.scss']
 })
 export class OperationControl {
@@ -43,6 +51,7 @@ export class OperationControl {
     private client = inject(Client);
     private storage = inject(Storage);
     private canvasActionsService = inject(CanvasActionsService);
+    private nifiCommon = inject(NiFiCommon);
 
     private static readonly CONTROL_VISIBILITY_KEY: string = 'graph-control-visibility';
     private static readonly OPERATION_KEY: string = 'operation-control';
@@ -170,6 +179,25 @@ export class OperationControl {
 
         const selectionData: any = selection.datum();
         return selectionData.id;
+    }
+
+    private getDrainSummary(selection: d3.Selection<any, any, any, any>): ProcessGroupDrainSummary | null {
+        const selectionCount = selection.size();
+        const selectedProcessGroupDrainSummary =
+            selectionCount === 1 && this.canvasUtils.isProcessGroup(selection) ? selection.datum().drainSummary : null;
+        return getOperationDrainSummary(
+            selectionCount,
+            this.canvasUtils.getCurrentProcessGroupDrainSummary(),
+            selectedProcessGroupDrainSummary
+        );
+    }
+
+    isDraining(selection: d3.Selection<any, any, any, any>): boolean {
+        return !!this.getDrainSummary(selection);
+    }
+
+    getDrainingTooltip(selection: d3.Selection<any, any, any, any>): string {
+        return getDrainingTooltip(this.getDrainSummary(selection), this.nifiCommon);
     }
 
     canConfigure(selection: d3.Selection<any, any, any, any>): boolean {

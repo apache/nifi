@@ -241,7 +241,7 @@ export class ConnectorCanvasEffects {
                             const processGroupRevision = flowResponse.revision ?? null;
                             const permissions = flowResponse.permissions ?? null;
                             const parentProcessGroupId = processGroupFlow?.parentGroupId ?? null;
-
+                            const currentProcessGroupDrainSummary = processGroupFlow?.drainSummary ?? null;
                             // Extract breadcrumb for navigation trail
                             const breadcrumb = processGroupFlow?.breadcrumb ?? null;
 
@@ -252,6 +252,7 @@ export class ConnectorCanvasEffects {
                                 parentProcessGroupId,
                                 breadcrumb,
                                 permissions,
+                                currentProcessGroupDrainSummary,
                                 labels,
                                 funnels,
                                 inputPorts,

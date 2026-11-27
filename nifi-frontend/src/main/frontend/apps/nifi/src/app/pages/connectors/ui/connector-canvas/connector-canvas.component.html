@@ -99,6 +99,7 @@
                     [operationBreadcrumb]="operationBreadcrumb()"
                     [operationCanvasPermissions]="operationBreadcrumb()?.permissions ?? null"
                     [operationCurrentProcessGroupId]="currentProcessGroupId"
+                    [operationCurrentProcessGroupDrainSummary]="operationCurrentProcessGroupDrainSummary()"
                     [operationProcessGroupRevision]="operationProcessGroupRevision()"
                     (viewportChange)="onBirdseyeViewportChange($event)"
                     (birdseyeDragStart)="onBirdseyeDragStart()"

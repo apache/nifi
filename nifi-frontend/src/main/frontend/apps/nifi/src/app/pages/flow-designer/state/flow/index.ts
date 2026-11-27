@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Position } from '@nifi/shared';
+import { Position, ProcessGroupDrainSummary } from '@nifi/shared';
 import {
     Dimensions,
     FlowComparisonEntity,
@@ -319,6 +319,7 @@ export interface ProcessGroupFlow {
     flow: Flow;
     lastRefreshed: string;
     resolvedExecutionEngine: ResolvedExecutionEngine;
+    drainSummary?: ProcessGroupDrainSummary;
 }
 
 export interface ProcessGroupFlowEntity {
@@ -452,17 +453,6 @@ export interface ComponentRunStatusRequest {
 
 export interface StartPollingProcessorUntilStoppedRequest {
     id: string;
-}
-
-export interface StopSourcesRequest {
-    id: string;
-}
-
-export interface StopSourcesResponse {
-    id: string;
-    state: 'STOPPED';
-    components: Record<string, Revision>;
-    disconnectedNodeAcknowledged?: boolean;
 }
 
 export interface StopComponentResponse {

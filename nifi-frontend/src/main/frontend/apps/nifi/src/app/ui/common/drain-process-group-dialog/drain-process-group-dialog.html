@@ -1,0 +1,101 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~    http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<h2 mat-dialog-title>Drain Process Group</h2>
+@if (drainState$ | async; as drainState) {
+    @if (getFailureMessages(drainState.drainRequest?.failureReason); as failureMessages) {
+        @if (failureMessages.length > 0) {
+            <error-banner [messages]="failureMessages" [showErrorIcon]="true" [allowDismiss]="false"></error-banner>
+        }
+    }
+    <div class="drain-process-group">
+        <mat-dialog-content>
+            <div class="flex flex-col gap-y-4">
+                <div class="tertiary-color font-medium" data-qa="drain-status-message">
+                    {{ getStatusMessage(drainState) }}
+                </div>
+                @if (drainState.drainRequest; as drainRequest) {
+                    <div class="w-full flex flex-col items-center">
+                        <mat-progress-bar
+                            [mode]="isProgressIndeterminate(drainRequest) ? 'indeterminate' : 'determinate'"
+                            [value]="getPercentCompleted(drainRequest)"></mat-progress-bar>
+                        <div class="tertiary-color font-medium" data-qa="drain-remaining">
+                            {{ getRemainingText(drainRequest) }}
+                        </div>
+                    </div>
+                    @if (drainRequest.blockingComponents.length > 0) {
+                        <div class="flex flex-col gap-y-2">
+                            <status-banner variant="caution" [allowDismiss]="false" data-qa="drain-blocking-banner">
+                                <div statusBannerTitle>{{ getBlockingBannerTitle(drainState) }}</div>
+                                <div statusBannerDescription>
+                                    Queued data cannot leave until the components below are fixed.
+                                </div>
+                            </status-banner>
+                            @for (component of drainRequest.blockingComponents; track component.id) {
+                                <div class="flex items-center gap-x-2" data-qa="drain-blocking-component">
+                                    @if (getBlockingTooltipComponent(component); as tooltipComponent) {
+                                        <div
+                                            class="fa fa-warning caution-color"
+                                            data-qa="drain-blocking-component-warning"
+                                            nifiTooltip
+                                            [tooltipComponentType]="tooltipComponent"
+                                            [tooltipInputData]="getBlockingTooltipData(component)"
+                                            [delayClose]="true"></div>
+                                    } @else {
+                                        <div
+                                            class="fa fa-warning caution-color"
+                                            data-qa="drain-blocking-component-warning"></div>
+                                    }
+                                    <div class="flex-1">
+                                        @if (drainState.status === 'ended') {
+                                            <a
+                                                class="pointer primary-color"
+                                                data-qa="drain-go-to"
+                                                (click)="goToComponent.next(component)"
+                                                >{{ getBlockingComponentLabel(component) }}</a
+                                            >
+                                        } @else {
+                                            <span data-qa="drain-blocking-component-label">{{
+                                                getBlockingComponentLabel(component)
+                                            }}</span>
+                                        }
+                                        <span data-qa="drain-blocking-component-detail">{{
+                                            getBlockingComponentDetail(component)
+                                        }}</span>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                }
+            </div>
+        </mat-dialog-content>
+        <mat-dialog-actions align="end">
+            @if (drainState.status === 'ended') {
+                <button mat-flat-button mat-dialog-close data-qa="drain-close">Close</button>
+            } @else {
+                <button
+                    mat-button
+                    data-qa="drain-cancel"
+                    [disabled]="drainState.status !== 'draining'"
+                    (click)="cancelDrain.next()">
+                    Cancel Drain
+                </button>
+            }
+        </mat-dialog-actions>
+    </div>
+}

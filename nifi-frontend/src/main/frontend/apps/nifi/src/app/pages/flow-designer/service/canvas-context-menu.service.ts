@@ -47,7 +47,6 @@ import {
     replayLastProvenanceEvent,
     requestRefreshRemoteProcessGroup,
     runOnce,
-    stopSources,
     stopVersionControlRequest,
     terminateThreads,
     updatePositions,
@@ -68,6 +67,7 @@ import {
     ContextMenuItemDefinition
 } from '../../../ui/common/context-menu/context-menu.component';
 import { promptEmptyQueueRequest, promptEmptyQueuesRequest } from '../../../state/empty-queue/empty-queue.actions';
+import { promptDrain, viewDrain } from '../state/process-group-drain/process-group-drain.actions';
 import { getComponentStateAndOpenDialog } from '../../../state/component-state/component-state.actions';
 import { navigateToComponentDocumentation } from '../../../state/documentation/documentation.actions';
 import * as d3 from 'd3';
@@ -784,32 +784,57 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
             },
             {
                 condition: (selection: any) => {
-                    if (!(selection.empty() || this.canvasUtils.isProcessGroup(selection))) {
-                        return false;
-                    }
-                    const resolved = selection.empty()
-                        ? this.canvasUtils.getResolvedExecutionEngine()
-                        : selection.datum().resolvedExecutionEngine;
-                    return resolved === 'STANDARD';
-                },
-                clazz: 'fa fa-stop-circle-o',
-                text: 'Stop Sources',
-                action: (selection: any) => {
-                    let processGroupId: string;
                     if (selection.empty()) {
-                        processGroupId = this.canvasUtils.getProcessGroupId();
-                    } else {
-                        const selectionData = selection.datum();
-                        processGroupId = selectionData.id;
+                        return (
+                            this.canvasUtils.getResolvedExecutionEngine() === 'STANDARD' &&
+                            this.canvasUtils.canModifyCurrentProcessGroup() &&
+                            !this.canvasUtils.getCurrentProcessGroupDrainRequestId()
+                        );
                     }
-
-                    this.store.dispatch(
-                        stopSources({
-                            request: {
-                                id: processGroupId
-                            }
-                        })
+                    return (
+                        this.canvasUtils.isProcessGroup(selection) &&
+                        selection.datum().resolvedExecutionEngine === 'STANDARD' &&
+                        this.canvasUtils.canRead(selection) &&
+                        this.canvasUtils.canModify(selection) &&
+                        !selection.datum().drainSummary?.id
                     );
+                },
+                clazz: 'fa fa-tint',
+                text: 'Drain',
+                action: (selection: any) => {
+                    const processGroupId = selection.empty()
+                        ? this.canvasUtils.getProcessGroupId()
+                        : selection.datum().id;
+                    this.store.dispatch(promptDrain({ request: { processGroupId } }));
+                }
+            },
+            {
+                condition: (selection: any) => {
+                    if (selection.empty()) {
+                        return (
+                            this.canvasUtils.canReadCurrentProcessGroup() &&
+                            !!this.canvasUtils.getCurrentProcessGroupDrainRequestId()
+                        );
+                    }
+                    return (
+                        this.canvasUtils.isProcessGroup(selection) &&
+                        this.canvasUtils.canRead(selection) &&
+                        !!selection.datum().drainSummary?.id
+                    );
+                },
+                clazz: 'fa fa-tint',
+                text: 'View Drain',
+                action: (selection: any) => {
+                    const request = selection.empty()
+                        ? {
+                              processGroupId: this.canvasUtils.getProcessGroupId(),
+                              drainRequestId: this.canvasUtils.getCurrentProcessGroupDrainRequestId()!
+                          }
+                        : {
+                              processGroupId: selection.datum().id,
+                              drainRequestId: selection.datum().drainSummary.id
+                          };
+                    this.store.dispatch(viewDrain({ request }));
                 }
             },
             {

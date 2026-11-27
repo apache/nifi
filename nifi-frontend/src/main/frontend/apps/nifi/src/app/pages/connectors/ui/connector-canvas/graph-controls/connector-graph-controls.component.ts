@@ -16,7 +16,7 @@
  */
 
 import { Component, input, output } from '@angular/core';
-import { ConnectorEntity, Permissions, Position, Revision } from '@nifi/shared';
+import { ConnectorEntity, Permissions, Position, ProcessGroupDrainSummary, Revision } from '@nifi/shared';
 import { CanvasNavigationControl } from '../../../../../ui/common/navigation-control/canvas-navigation-control.component';
 import { BirdseyeComponentData, BirdseyeTransform } from '../../../../../ui/common/birdseye/birdseye.types';
 import { Dimension } from '../../../../../ui/common/canvas/canvas.types';
@@ -53,6 +53,7 @@ export class ConnectorGraphControls {
     operationBreadcrumb = input<BreadcrumbEntity | null>(null);
     operationCanvasPermissions = input<Permissions | null>(null);
     operationCurrentProcessGroupId = input<string | null>(null);
+    operationCurrentProcessGroupDrainSummary = input<ProcessGroupDrainSummary | null>(null);
     operationProcessGroupRevision = input<Revision | null>(null);
 
     viewportChange = output<Position>();

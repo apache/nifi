@@ -22,6 +22,7 @@ import {
     LabelEntity,
     Permissions,
     PortEntity,
+    ProcessGroupDrainSummary,
     ProcessGroupEntity,
     ProcessorEntity,
     RemoteProcessGroupEntity,
@@ -93,6 +94,11 @@ export interface ConnectorCanvasState {
      * `ProcessGroupFlowEntity.permissions`. Null until the first flow load completes.
      */
     permissions: Permissions | null;
+    /**
+     * Drain summary for the currently loaded process group, from `ProcessGroupFlowDTO.drainSummary`.
+     * Null when the group is not draining.
+     */
+    currentProcessGroupDrainSummary: ProcessGroupDrainSummary | null;
     labels: LabelEntity[];
     funnels: FunnelEntity[];
     inputPorts: PortEntity[];
@@ -122,6 +128,7 @@ export const initialConnectorCanvasState: ConnectorCanvasState = {
     parentProcessGroupId: null,
     breadcrumb: null,
     permissions: null,
+    currentProcessGroupDrainSummary: null,
     labels: [],
     funnels: [],
     inputPorts: [],

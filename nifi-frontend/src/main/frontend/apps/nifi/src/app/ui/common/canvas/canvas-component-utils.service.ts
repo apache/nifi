@@ -18,8 +18,8 @@
 import { Injectable, inject, Type } from '@angular/core';
 import * as d3 from 'd3';
 import { BulletinEntity, ComponentType, NiFiCommon, TextTip } from '@nifi/shared';
-import { Overlay, OverlayRef, PositionStrategy } from '@angular/cdk/overlay';
-import { ComponentPortal } from '@angular/cdk/portal';
+import { Overlay } from '@angular/cdk/overlay';
+import { bindCanvasTooltip, CanvasTooltipSessionMap, unbindCanvasTooltip } from './utils/canvas-tooltip-overlay';
 import { BulletinsTip } from '../tooltips/bulletins-tip/bulletins-tip.component';
 import { humanizer, Humanizer } from 'humanize-duration';
 import { ActiveThreadCountDatum } from './canvas.types';
@@ -30,6 +30,7 @@ import { ActiveThreadCountDatum } from './canvas.types';
 export class CanvasComponentUtils {
     private nifiCommon = inject(NiFiCommon);
     private overlay = inject(Overlay);
+    private readonly canvasTooltipSessions: CanvasTooltipSessionMap = new WeakMap();
     private readonly humanizeDuration: Humanizer = humanizer();
 
     public activeThreadCount<GElement extends d3.BaseType, Datum, PElement extends d3.BaseType, PDatum>(
@@ -226,102 +227,13 @@ export class CanvasComponentUtils {
         selection: d3.Selection<GElement, Datum, PElement, PDatum>,
         tooltipData: unknown
     ): void {
-        let closeTimer = -1;
-        let openTimer = -1;
-        const overlay = this.overlay;
-        let overlayRef: OverlayRef | null = null;
-        let positionStrategy: PositionStrategy | null = null;
-
-        const cleanup = () => {
-            selection.classed('tooltip-active', false);
-
-            overlayRef?.detach();
-            overlayRef?.dispose();
-            overlayRef = null;
-
-            positionStrategy?.detach?.();
-            positionStrategy?.dispose();
-            positionStrategy = null;
-        };
-
-        // check to see if there is an active tooltip
-        const tooltipActive: boolean = selection.classed('tooltip-active');
-
-        // if there is an existing mouse leave listener, dispatch it so that the tooltip is closed
-        if (selection.on('mouseleave')) {
-            selection.dispatch('mouseleave');
-        }
-
-        selection
-            .on('mouseenter', function (this: GElement) {
-                if (overlayRef?.hasAttached()) {
-                    return;
-                }
-
-                if (!overlayRef) {
-                    openTimer = window.setTimeout(() => {
-                        // mark the tooltip as active so that is can be cleaned up in a subsequent invocation of this method
-                        selection.classed('tooltip-active', true);
-
-                        const anchor = d3.select(this).node();
-                        if (!(anchor instanceof Element)) {
-                            return;
-                        }
-
-                        positionStrategy = overlay
-                            .position()
-                            .flexibleConnectedTo(anchor)
-                            .withPositions([
-                                {
-                                    originX: 'end',
-                                    originY: 'bottom',
-                                    overlayX: 'start',
-                                    overlayY: 'top',
-                                    offsetX: 8,
-                                    offsetY: 8
-                                }
-                            ])
-                            .withPush(true);
-
-                        overlayRef = overlay.create({ positionStrategy });
-                        const tooltipReference = overlayRef.attach(new ComponentPortal(type));
-                        tooltipReference.setInput('data', tooltipData);
-
-                        // register mouse events
-                        tooltipReference.location.nativeElement.addEventListener('mouseenter', () => {
-                            if (closeTimer > 0) {
-                                window.clearTimeout(closeTimer);
-                                closeTimer = -1;
-                            }
-                        });
-                        tooltipReference.location.nativeElement.addEventListener('mouseleave', () => {
-                            cleanup();
-                        });
-                    }, NiFiCommon.TOOLTIP_DELAY_OPEN_MILLIS);
-                }
-            })
-            .on('mouseleave', function () {
-                if (openTimer > 0) {
-                    window.clearTimeout(openTimer);
-                    openTimer = -1;
-                }
-                closeTimer = window.setTimeout(() => {
-                    cleanup();
-                }, NiFiCommon.TOOLTIP_DELAY_OPEN_MILLIS);
-            });
-
-        // if the tooltip is already active, dispatch a mouse enter event so that a new tooltip is shown with updated tooltip data
-        if (tooltipActive) {
-            selection.dispatch('mouseenter');
-        }
+        bindCanvasTooltip(this.overlay, this.canvasTooltipSessions, type, selection, tooltipData);
     }
 
     public resetCanvasTooltip<GElement extends d3.BaseType, Datum, PElement extends d3.BaseType, PDatum>(
         selection: d3.Selection<GElement, Datum, PElement, PDatum>
     ): void {
-        // while tooltips are created dynamically, we need to provide the ability to remove the mouse
-        // listener to prevent new tooltips from being created on subsequent mouse enter/leave
-        selection.on('mouseenter', null).on('mouseleave', null);
+        unbindCanvasTooltip(this.canvasTooltipSessions, selection);
     }
 
     public formatPredictedDuration(duration: number): string {
