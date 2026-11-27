@@ -61,7 +61,7 @@ import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_MESSAGE_DES
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"box", "storage", "metadata", "templates", "update"})
 @CapabilityDescription("""
-         Updates metadata template values for a Box file using the record in the given flowFile.\s
+         Updates metadata template values for a Box file using the record in the given FlowFile.\s
          This record represents the desired end state of the template after the update.\s
          The processor will calculate the necessary changes (add/replace/remove) to transform
          the current metadata to the desired state. The input record should be a flat key-value object.

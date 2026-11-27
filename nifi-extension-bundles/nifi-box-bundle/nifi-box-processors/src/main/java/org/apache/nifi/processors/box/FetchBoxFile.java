@@ -90,7 +90,7 @@ public class FetchBoxFile extends AbstractBoxProcessor {
     public static final Relationship REL_FAILURE =
             new Relationship.Builder()
                     .name("failure")
-                    .description("A FlowFile will be routed here for each File for which fetch was attempted but failed.")
+                    .description("A FlowFile will be routed here for each file for which a fetch was attempted but failed.")
                     .build();
 
     public static final Set<Relationship> RELATIONSHIPS = Set.of(
