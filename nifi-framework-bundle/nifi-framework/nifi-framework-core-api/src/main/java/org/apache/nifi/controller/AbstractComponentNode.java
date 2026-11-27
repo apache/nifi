@@ -1299,8 +1299,9 @@ public abstract class AbstractComponentNode implements ComponentNode {
                         logger.error("Failed to notify {} that property {} changed", this, propertyDescriptor, e);
                     }
                 } else {
-                    logger.debug("Parameter Context updated, and property {} of {} does reference the updated Parameters. However, the overall property value remained unchanged so will not call " +
-                        "onPropertyModified().", propertyDescriptor, this);
+                    logger.debug("""
+                        Parameter Context updated, and property {} of {} does reference the updated Parameters. However, the overall property value remained unchanged so will not call \
+                        onPropertyModified().""", propertyDescriptor, this);
                 }
             }
         }

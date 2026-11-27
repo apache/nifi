@@ -100,8 +100,9 @@ public class MigrateDefunctIndex implements Runnable {
             try {
                 FileUtils.deleteFile(tempIndexDir, true);
             } catch (final Exception e) {
-                logger.error("Attempted to rebuild index for {} but there already exists a temporary Lucene 9 index at {}. " +
-                    "Attempted to delete existing temp directory but failed. This index will not be rebuilt.", tempIndexDir, tempIndexDir, e);
+                logger.error("""
+                    Attempted to rebuild index for {} but there already exists a temporary Lucene 9 index at {}. \
+                    Attempted to delete existing temp directory but failed. This index will not be rebuilt.""", tempIndexDir, tempIndexDir, e);
                 return false;
             }
         }
@@ -111,8 +112,9 @@ public class MigrateDefunctIndex implements Runnable {
             try {
                 FileUtils.deleteFile(migratedIndexDir, true);
             } catch (final Exception e) {
-                logger.error("Attempted to rebuild index for {} but there already exists a Lucene 9 index at {}. " +
-                    "Attempted to delete existing Lucene 8 directory but failed. This index will not be rebuilt.", migratedIndexDir, migratedIndexDir, e);
+                logger.error("""
+                    Attempted to rebuild index for {} but there already exists a Lucene 9 index at {}. \
+                    Attempted to delete existing Lucene 8 directory but failed. This index will not be rebuilt.""", migratedIndexDir, migratedIndexDir, e);
                 return false;
             }
         }

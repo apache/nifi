@@ -382,8 +382,9 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
             events.add(provenanceEvent);
         }
 
-        logger.debug("Updated Provenance Repository to note that {} FlowFiles were dropped from the system because the data received from the other node could not be transferred to the FlowFile " +
-            "Queue", events.size());
+        logger.debug("""
+            Updated Provenance Repository to note that {} FlowFiles were dropped from the system because the data received from the other node could not be transferred to the FlowFile Queue""",
+                events.size());
         provenanceRepository.registerEvents(events);
     }
 

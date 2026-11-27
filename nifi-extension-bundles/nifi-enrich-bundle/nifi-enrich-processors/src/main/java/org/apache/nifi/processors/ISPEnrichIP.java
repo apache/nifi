@@ -81,9 +81,10 @@ public class ISPEnrichIP extends AbstractEnrichIP {
             inetAddress = InetAddress.getByName(ipAttributeValue);
         } catch (final IOException ioe) {
             session.transfer(flowFile, REL_NOT_FOUND);
-            getLogger().warn("Could not resolve the IP for value '{}', contained within the attribute '{}' in " +
-                            "FlowFile '{}'. This is usually caused by issue resolving the appropriate DNS record or " +
-                            "providing the processor with an invalid IP address ",
+            getLogger().warn("""
+                            Could not resolve the IP for value '{}', contained within the attribute '{}' in \
+                            FlowFile '{}'. This is usually caused by issue resolving the appropriate DNS record or \
+                            providing the processor with an invalid IP address""",
                     ipAttributeValue, IP_ADDRESS_ATTRIBUTE.getDisplayName(), flowFile, ioe);
             return;
         }

@@ -427,8 +427,9 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
 
         final ExecutionEngine executionEngine = group.resolveExecutionEngine();
         if (executionEngine == ExecutionEngine.STATELESS) {
-            logger.info("Attempt was made to activate Controller Services for Process Group with ID {} and Controller Service State {} but group is configured to use the Stateless Engine so will " +
-                "not change state of Controller Services", groupId, state);
+            logger.info("""
+                Attempt was made to activate Controller Services for Process Group with ID {} and Controller Service State {} but group is configured to use the Stateless Engine so will \
+                not change state of Controller Services""", groupId, state);
             return;
         }
 

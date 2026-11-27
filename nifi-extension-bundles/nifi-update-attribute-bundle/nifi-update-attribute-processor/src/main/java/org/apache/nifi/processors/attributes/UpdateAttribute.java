@@ -551,8 +551,9 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
 
                     boolean setState = session.replaceState(stateMap, stateWorkingAttributes, Scope.LOCAL);
                     if (!setState) {
-                        logger.warn("Failed to update the state after successfully processing {} due to having an old version of the StateMap. This is normally due to multiple threads running at " +
-                                "once; transferring to '{}'", incomingFlowFile, REL_FAILED_SET_STATE.getName());
+                        logger.warn("""
+                                Failed to update the state after successfully processing {} due to having an old version of the StateMap. This is normally due to multiple threads running at \
+                                once; transferring to '{}'""", incomingFlowFile, REL_FAILED_SET_STATE.getName());
 
                         flowFilesToTransfer.remove(incomingFlowFile);
                         if (!flowFilesToTransfer.isEmpty()) {
@@ -564,8 +565,9 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
                     }
                 }
             } catch (IOException e) {
-                logger.error("Failed to set the state after successfully processing {} due a failure when setting the state. This is normally due to multiple threads running at " +
-                        "once; transferring to '{}'", incomingFlowFile, REL_FAILED_SET_STATE.getName(), e);
+                logger.error("""
+                        Failed to set the state after successfully processing {} due a failure when setting the state. This is normally due to multiple threads running at \
+                        once; transferring to '{}'""", incomingFlowFile, REL_FAILED_SET_STATE.getName(), e);
 
                 flowFilesToTransfer.remove(incomingFlowFile);
                 if (!flowFilesToTransfer.isEmpty()) {

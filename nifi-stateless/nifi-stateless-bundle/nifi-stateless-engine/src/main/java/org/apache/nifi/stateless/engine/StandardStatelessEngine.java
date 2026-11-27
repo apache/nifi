@@ -577,8 +577,9 @@ public class StandardStatelessEngine implements StatelessEngine {
 
                 final Optional<Parameter> optionalParameter = existingContext.getParameter(parameterName);
                 if (!optionalParameter.isPresent()) {
-                    logger.warn("Configuration contains a Parameter with name <{}> for Parameter Context <{}> but the Parameter Context does not have a Parameter with that name. This Parameter will" +
-                        " be ignored.", parameterName, contextName);
+                    logger.warn("""
+                        Configuration contains a Parameter with name <{}> for Parameter Context <{}> but the Parameter Context does not have a Parameter with that name. This Parameter will \
+                        be ignored.""", parameterName, contextName);
                     continue;
                 }
 

@@ -96,8 +96,9 @@ public class IdentityFilter extends GenericFilterBean {
                     logger.debug("Authentication successful for {}", authenticated.getName());
                 }
             } else {
-                logger.debug("The {} did not find credentials it supports on the servlet request. " +
-                        "Allowing this request to continue through the filter chain where another filter might authenticate it.",
+                logger.debug("""
+                        The {} did not find credentials it supports on the servlet request. \
+                        Allowing this request to continue through the filter chain where another filter might authenticate it.""",
                     identityProvider.getClass().getSimpleName());
             }
         } catch (final AuthenticationException e) {

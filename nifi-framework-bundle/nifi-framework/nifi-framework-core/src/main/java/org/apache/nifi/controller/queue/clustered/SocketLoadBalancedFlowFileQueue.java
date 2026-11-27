@@ -1105,8 +1105,9 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
 
             adjustSize(-expired.size(), -expired.stream().mapToLong(FlowFileRecord::getSize).sum());
         } catch (IOException e) {
-            logger.warn("Encountered {} expired FlowFiles but failed to update FlowFile Repository. This FlowFiles may re-appear in the queue after NiFi is restarted and will be expired again at " +
-                    "that point.", expiredRecords.size(), e);
+            logger.warn("""
+                    Encountered {} expired FlowFiles but failed to update FlowFile Repository. This FlowFiles may re-appear in the queue after NiFi is restarted and will be expired again at \
+                    that point.""", expiredRecords.size(), e);
         }
     }
 

@@ -307,8 +307,9 @@ public class StandardDataValve implements DataValve {
         try {
             stateMap = stateManager.getState(Scope.LOCAL);
         } catch (final Exception e) {
-            logger.error("Failed to recover state for {}. This could result in Process Groups configured with a FlowFile Concurrency of SINGLE_BATCH_PER_NODE to get data from " +
-                "multiple batches concurrently or stop ingesting data", this, e);
+            logger.error("""
+                Failed to recover state for {}. This could result in Process Groups configured with a FlowFile Concurrency of SINGLE_BATCH_PER_NODE to get data from \
+                multiple batches concurrently or stop ingesting data""", this, e);
             return;
         }
 
@@ -346,8 +347,9 @@ public class StandardDataValve implements DataValve {
         try {
             stateManager.setState(stateValues, Scope.LOCAL);
         } catch (final Exception e) {
-            logger.error("Failed to store state for {}. If NiFi is restarted before state is properly stored, this could result Process Groups configured with a " +
-                "FlowFile Concurrency of SINGLE_BATCH_PER_NODE to get data from multiple batches concurrently or stop ingesting data", this, e);
+            logger.error("""
+                Failed to store state for {}. If NiFi is restarted before state is properly stored, this could result Process Groups configured with a \
+                FlowFile Concurrency of SINGLE_BATCH_PER_NODE to get data from multiple batches concurrently or stop ingesting data""", this, e);
         }
     }
 

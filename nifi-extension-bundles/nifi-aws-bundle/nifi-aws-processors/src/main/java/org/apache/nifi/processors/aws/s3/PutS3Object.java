@@ -688,9 +688,10 @@ public class PutS3Object extends AbstractS3Processor {
                         if (currentState != null) {
                             if (!currentState.getCompletedParts().isEmpty()) {
                                 final CompletedPart lastCompletedPart = currentState.getCompletedParts().getLast();
-                                getLogger().info("Resuming upload for flowfile='{}' bucket='{}' key='{}' " +
-                                                "uploadID='{}' filePosition='{}' partSize='{}' storageClass='{}' " +
-                                                "contentLength='{}' partsLoaded={} lastPart={}/{}",
+                                getLogger().info("""
+                                                Resuming upload for flowfile='{}' bucket='{}' key='{}' \
+                                                uploadID='{}' filePosition='{}' partSize='{}' storageClass='{}' \
+                                                contentLength='{}' partsLoaded={} lastPart={}/{}""",
                                         ffFilename, bucket, key, currentState.getUploadId(),
                                         currentState.getFilePosition(), currentState.getPartSize(),
                                         currentState.getStorageClass().toString(),
@@ -699,9 +700,10 @@ public class PutS3Object extends AbstractS3Processor {
                                         Integer.toString(lastCompletedPart.partNumber()),
                                         lastCompletedPart.eTag());
                             } else {
-                                getLogger().info("Resuming upload for flowfile='{}' bucket='{}' key='{}' " +
-                                                "uploadID='{}' filePosition='{}' partSize='{}' storageClass='{}' " +
-                                                "contentLength='{}' no partsLoaded",
+                                getLogger().info("""
+                                                Resuming upload for flowfile='{}' bucket='{}' key='{}' \
+                                                uploadID='{}' filePosition='{}' partSize='{}' storageClass='{}' \
+                                                contentLength='{}' no partsLoaded""",
                                         ffFilename, bucket, key, currentState.getUploadId(),
                                         currentState.getFilePosition(), currentState.getPartSize(),
                                         currentState.getStorageClass().toString(),
@@ -940,10 +942,11 @@ public class PutS3Object extends AbstractS3Processor {
                 if (e instanceof final S3Exception s3e
                         && s3e.statusCode() == 403
                         && s3e.awsErrorDetails().errorCode().equals("AccessDenied")) {
-                    getLogger().warn("AccessDenied checking S3 Multipart Upload list for {}: {} " +
-                            "** The configured user does not have the s3:ListBucketMultipartUploads permission " +
-                            "for this bucket, S3 ageoff cannot occur without this permission.  Next ageoff check " +
-                            "time is being advanced by interval to prevent checking on every upload **", bucket, e.getMessage());
+                    getLogger().warn("""
+                            AccessDenied checking S3 Multipart Upload list for {}: {} \
+                            ** The configured user does not have the s3:ListBucketMultipartUploads permission \
+                            for this bucket, S3 ageoff cannot occur without this permission.  Next ageoff check \
+                            time is being advanced by interval to prevent checking on every upload **""", bucket, e.getMessage());
                     lastS3AgeOff.set(System.currentTimeMillis());
                 } else {
                     getLogger().error("Error checking S3 Multipart Upload list for {}", bucket, e);

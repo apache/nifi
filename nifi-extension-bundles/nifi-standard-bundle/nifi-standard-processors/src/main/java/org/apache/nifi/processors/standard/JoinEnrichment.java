@@ -319,8 +319,9 @@ public class JoinEnrichment extends BinFiles {
         final FlowFile enrichment = getFlowFileWithRole(flowFiles, EnrichmentRole.ENRICHMENT);
 
         if (original == null || enrichment == null) {
-            getLogger().error("Received two FlowFiles {} but could not find both an 'original' and an 'enrichment' FlowFile. The FlowFiles do not appear to have the proper attributes necessary for " +
-                "use with this Processor. Routing to {}", flowFiles, REL_FAILURE);
+            getLogger().error("""
+                Received two FlowFiles {} but could not find both an 'original' and an 'enrichment' FlowFile. The FlowFiles do not appear to have the proper attributes necessary for \
+                use with this Processor. Routing to {}""", flowFiles, REL_FAILURE);
             return transferFailure(flowFiles, session);
         }
 

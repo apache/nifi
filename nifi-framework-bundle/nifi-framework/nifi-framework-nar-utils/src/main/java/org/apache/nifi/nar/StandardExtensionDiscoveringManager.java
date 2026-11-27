@@ -211,8 +211,9 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
 
     @Override
     public synchronized void discoverPythonExtensions(final Bundle pythonBundle, final Set<Bundle> bundles) {
-        logger.debug("Scanning to discover which Python extensions are available and importing any necessary dependencies. If new components are discovered, this may take a few minutes. " +
-                "See python logs for more details.");
+        logger.debug("""
+                Scanning to discover which Python extensions are available and importing any necessary dependencies. If new components are discovered, this may take a few minutes. \
+                See python logs for more details.""");
         final long start = System.currentTimeMillis();
         final List<File> bundleWorkingDirectories = bundles.stream()
                 .map(Bundle::getBundleDetails)
@@ -223,8 +224,9 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
     }
 
     private void discoverPythonExtensions(final Bundle pythonBundle, final boolean includeNarBundles) {
-        logger.debug("Scanning to discover which Python extensions are available and importing any necessary dependencies. If new components are discovered, this may take a few minutes. " +
-            "See python logs for more details.");
+        logger.debug("""
+            Scanning to discover which Python extensions are available and importing any necessary dependencies. If new components are discovered, this may take a few minutes. \
+            See python logs for more details.""");
         final long start = System.currentTimeMillis();
         pythonBridge.discoverExtensions(includeNarBundles);
         loadPythonExtensions(pythonBundle, start);

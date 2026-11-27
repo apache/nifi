@@ -456,8 +456,9 @@ public class CuratorLeaderElectionManager extends TrackedLeaderElectionManager {
                     logger.debug("Took {} nanoseconds to reach out to ZooKeeper in order to check whether or not this node is currently the leader for Role '{}'. ZooKeeper reported {}",
                         nanos, roleName, zkLeader);
                 } catch (final Exception e) {
-                    logger.warn("Attempted to reach out to ZooKeeper to determine whether or not this node is the elected leader for Role '{}' but failed to communicate with ZooKeeper. " +
-                        "Assuming that this node is not the leader.", roleName, e);
+                    logger.warn("""
+                        Attempted to reach out to ZooKeeper to determine whether or not this node is the elected leader for Role '{}' but failed to communicate with ZooKeeper. \
+                        Assuming that this node is not the leader.""", roleName, e);
 
                     return false;
                 }

@@ -122,8 +122,9 @@ public class TroubleshootingTestWatcher implements TestWatcher, AfterTestExecuti
         NiFiInstance instance = provider.getNiFiInstance();
 
         if (instance == null) {
-            logger.warn("While capturing troubleshooting info for {}, the NiFi Instance is not available. Will create a new one for Diagnostics purposes, but live diagnostics will not be available " +
-                "since it's not the same instance that ran the test", methodName);
+            logger.warn("""
+                While capturing troubleshooting info for {}, the NiFi Instance is not available. Will create a new one for Diagnostics purposes, but live diagnostics will not be available \
+                since it's not the same instance that ran the test""", methodName);
             instance = provider.getInstanceFactory().createInstance();
         }
 

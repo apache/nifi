@@ -206,8 +206,9 @@ public class StandardStatelessGroupNode implements StatelessGroupNode {
 
             final boolean triggerSerially = !triggerSeriallyProcessors.isEmpty();
             if (maxConcurrentTasks > 1 && triggerSerially) {
-                logger.warn("Flow is configured to run using the Stateless Engine with {} max concurrent tasks. However, {} only allows a single concurrent task or allows running only on " +
-                    "the Primary Node, so the flow will run with a single concurrent task", maxConcurrentTasks, triggerSeriallyProcessors);
+                logger.warn("""
+                    Flow is configured to run using the Stateless Engine with {} max concurrent tasks. However, {} only allows a single concurrent task or allows running only on \
+                    the Primary Node, so the flow will run with a single concurrent task""", maxConcurrentTasks, triggerSeriallyProcessors);
             }
 
             // Perform setup in background thread outside of lock

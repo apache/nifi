@@ -1344,8 +1344,9 @@ public class TailFile extends AbstractProcessor {
                 // consume the rest of the data, including the last line, even if it doesn't have a line ending.
                 final long millisSinceModified = getCurrentTimeMs() - newestFile.lastModified();
                 if (millisSinceModified < postRolloverTailMillis) {
-                    getLogger().debug("Rolled over file {} (size={}, lastModified={}) was modified {} millis ago, which isn't long enough to consume file fully without taking line endings into " +
-                        "account. Will do nothing for now.", newestFile, newestFile.length(), newestFile.lastModified(), millisSinceModified);
+                    getLogger().debug("""
+                        Rolled over file {} (size={}, lastModified={}) was modified {} millis ago, which isn't long enough to consume file fully without taking line endings into \
+                        account. Will do nothing for now.""", newestFile, newestFile.length(), newestFile.lastModified(), millisSinceModified);
                     return true;
                 }
 

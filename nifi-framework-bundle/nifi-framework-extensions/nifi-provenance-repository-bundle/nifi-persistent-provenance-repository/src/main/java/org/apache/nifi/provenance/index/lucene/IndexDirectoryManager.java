@@ -440,8 +440,9 @@ public class IndexDirectoryManager {
         } else {
             final String partitionName = getPartitionName(indexDirectory);
             if (partitionName == null) {
-                logger.debug("Attempted to replace old index directory {} with new index directory but the old index directory did not " +
-                    "exist and could not determine partition name for new index directory", indexDirectory);
+                logger.debug("""
+                    Attempted to replace old index directory {} with new index directory but the old index directory did not \
+                    exist and could not determine partition name for new index directory""", indexDirectory);
             } else {
                 final IndexLocation indexLocation = new IndexLocation(indexDirectory, timestamp, partitionName);
                 indexLocationByTimestamp.computeIfAbsent(timestamp, key -> new ArrayList<>()).add(indexLocation);

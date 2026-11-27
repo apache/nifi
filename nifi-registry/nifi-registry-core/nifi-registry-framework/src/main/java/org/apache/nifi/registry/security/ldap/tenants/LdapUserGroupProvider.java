@@ -493,9 +493,10 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                                 final Attribute attributeGroups = ctx.getAttributes().get(userGroupNameAttribute);
 
                                 if (attributeGroups == null) {
-                                    logger.debug("User group name attribute [{}] does not exist for {}. " +
-                                            "This may be due to misconfiguration or this user record may not have any group membership attributes defined. " +
-                                            "Ignoring group membership. ", userGroupNameAttribute, identity);
+                                    logger.debug("""
+                                            User group name attribute [{}] does not exist for {}. \
+                                            This may be due to misconfiguration or this user record may not have any group membership attributes defined. \
+                                            Ignoring group membership.""", userGroupNameAttribute, identity);
                                 } else {
                                     try {
                                         final NamingEnumeration<String> groupValues = (NamingEnumeration<String>) attributeGroups.getAll();
@@ -563,9 +564,10 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                             if (!StringUtils.isBlank(groupMemberAttribute)) {
                                 Attribute attributeUsers = ctx.getAttributes().get(groupMemberAttribute);
                                 if (attributeUsers == null) {
-                                    logger.debug("Group member attribute [{}] does not exist for {}. " +
-                                            "This may be due to misconfiguration or this group record may not have any user attributes defined. " +
-                                            "Ignoring group membership.", groupMemberAttribute, name);
+                                    logger.debug("""
+                                            Group member attribute [{}] does not exist for {}. \
+                                            This may be due to misconfiguration or this group record may not have any user attributes defined. \
+                                            Ignoring group membership.""", groupMemberAttribute, name);
                                 } else {
                                     try {
                                         final NamingEnumeration<String> userValues = (NamingEnumeration<String>) attributeUsers.getAll();
@@ -583,9 +585,10 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                                                 if (user != null) {
                                                     groupToUserIdentifierMappings.computeIfAbsent(referencedGroupValue, g -> new HashSet<>()).add(user.getIdentifier());
                                                 } else {
-                                                    logger.debug("{} contains member {} but that user was not found while searching users. " +
-                                                            "This may be due to misconfiguration or because that user is not a NiFi Registry user as defined by the User Search Base and Filter. " +
-                                                            "Ignoring group membership.", name, userValue);
+                                                    logger.debug("""
+                                                            {} contains member {} but that user was not found while searching users. \
+                                                            This may be due to misconfiguration or because that user is not a NiFi Registry user as defined by the User Search Base and Filter. \
+                                                            Ignoring group membership.""", name, userValue);
                                                 }
                                             } else {
                                                 // since performUserSearch is false, then the referenced group attribute must be blank... the user value must be the dn.
