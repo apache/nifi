@@ -36,6 +36,8 @@ import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.flow.VersionedPropertyDescriptor;
 import org.apache.nifi.flow.VersionedRemoteGroupPort;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.migration.PropertyConfiguration;
+import org.apache.nifi.migration.PropertyMigrationPreview;
 import org.apache.nifi.migration.StandardControllerServiceFactory;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -56,6 +58,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -291,6 +294,149 @@ public class TestFlowDifferenceFilters {
                 null,
                 "Dynamic property parameterization removed");
         assertFalse(FlowDifferenceFilters.isStaticPropertyRemoved(parameterizationRemovedDifference, flowManager));
+    }
+
+    @Test
+    public void testIsStaticPropertyRemovedWhenSnapshotDescriptorIsNonDynamicOnDynamicComponent() {
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+        final ProcessorNode processorNode = Mockito.mock(ProcessorNode.class);
+
+        final String propertyName = "Validate Field Names";
+        final String instanceId = "processor-instance";
+
+        Mockito.when(flowManager.getProcessorNode(instanceId)).thenReturn(processorNode);
+        Mockito.when(processorNode.getComponent()).thenReturn(new DynamicAnnotationProcessor());
+
+        final VersionedPropertyDescriptor snapshotDescriptor = new VersionedPropertyDescriptor();
+        snapshotDescriptor.setName(propertyName);
+        snapshotDescriptor.setDisplayName(propertyName);
+        snapshotDescriptor.setDynamic(false);
+
+        final VersionedProcessor registryProcessor = new VersionedProcessor();
+        registryProcessor.setPropertyDescriptors(Map.of(propertyName, snapshotDescriptor));
+        registryProcessor.setProperties(Map.of(propertyName, "true"));
+
+        final InstantiatedVersionedProcessor localProcessor = new InstantiatedVersionedProcessor(instanceId, "group-id");
+        final FlowDifference difference = new StandardFlowDifference(
+                DifferenceType.PROPERTY_REMOVED,
+                registryProcessor,
+                localProcessor,
+                propertyName,
+                "true",
+                null,
+                "Static property removed after upgrade");
+
+        assertTrue(FlowDifferenceFilters.isStaticPropertyRemoved(difference, flowManager));
+        assertTrue(FlowDifferenceFilters.isEnvironmentalChange(difference, null, flowManager));
+    }
+
+    @Test
+    public void testIsStaticPropertyRemovedWhenSnapshotDescriptorIsDynamicOnDynamicComponent() {
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+        final ProcessorNode processorNode = Mockito.mock(ProcessorNode.class);
+
+        final String propertyName = "user-schema";
+        final String instanceId = "processor-instance";
+
+        Mockito.when(flowManager.getProcessorNode(instanceId)).thenReturn(processorNode);
+        Mockito.when(processorNode.getComponent()).thenReturn(new DynamicAnnotationProcessor());
+
+        final VersionedPropertyDescriptor snapshotDescriptor = new VersionedPropertyDescriptor();
+        snapshotDescriptor.setName(propertyName);
+        snapshotDescriptor.setDisplayName(propertyName);
+        snapshotDescriptor.setDynamic(true);
+
+        final VersionedProcessor registryProcessor = new VersionedProcessor();
+        registryProcessor.setPropertyDescriptors(Map.of(propertyName, snapshotDescriptor));
+        registryProcessor.setProperties(Map.of(propertyName, "{\"type\":\"record\"}"));
+
+        final InstantiatedVersionedProcessor localProcessor = new InstantiatedVersionedProcessor(instanceId, "group-id");
+        final FlowDifference difference = new StandardFlowDifference(
+                DifferenceType.PROPERTY_REMOVED,
+                registryProcessor,
+                localProcessor,
+                propertyName,
+                "{\"type\":\"record\"}",
+                null,
+                "User-removed dynamic property");
+
+        assertFalse(FlowDifferenceFilters.isStaticPropertyRemoved(difference, flowManager));
+        assertFalse(FlowDifferenceFilters.isEnvironmentalChange(difference, null, flowManager));
+    }
+
+    @Test
+    public void testBooleanToEnumReplacementWithDefaultValueIsEnvironmentalChange() {
+        assertBooleanToEnumReplacement("true", MigratingDynamicProcessor.VALIDATE, true);
+    }
+
+    @Test
+    public void testBooleanToEnumReplacementWithNonDefaultValueIsEnvironmentalChange() {
+        assertBooleanToEnumReplacement("false", MigratingDynamicProcessor.NONE, true);
+    }
+
+    @Test
+    public void testUserEditOfMigratedReplacementIsNotEnvironmentalChange() {
+        assertBooleanToEnumReplacement("true", MigratingDynamicProcessor.NONE, false);
+    }
+
+    private void assertBooleanToEnumReplacement(final String obsoleteValue, final String localStrategy, final boolean addedIsEnvironmental) {
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+        final ProcessorNode processorNode = Mockito.mock(ProcessorNode.class);
+        final MigratingDynamicProcessor migratingProcessor = new MigratingDynamicProcessor();
+
+        final String instanceId = "processor-instance";
+        final String groupId = "group-id";
+        final String versionedId = "versioned-id";
+
+        Mockito.when(flowManager.getProcessorNode(instanceId)).thenReturn(processorNode);
+        Mockito.when(processorNode.getComponent()).thenReturn(migratingProcessor);
+        Mockito.when(processorNode.getPropertyDescriptor(MigratingDynamicProcessor.NEW_PROPERTY)).thenReturn(migratingProcessor.getPropertyDescriptor(MigratingDynamicProcessor.NEW_PROPERTY));
+        Mockito.when(processorNode.previewMigratedProperties(Mockito.any())).thenAnswer(invocation ->
+                PropertyMigrationPreview.preview(migratingProcessor, null, instanceId, "test", Function.identity(), invocation.getArgument(0)));
+
+        final VersionedPropertyDescriptor obsoleteDescriptor = new VersionedPropertyDescriptor();
+        obsoleteDescriptor.setName(MigratingDynamicProcessor.OBSOLETE_PROPERTY);
+        obsoleteDescriptor.setDisplayName(MigratingDynamicProcessor.OBSOLETE_PROPERTY);
+        obsoleteDescriptor.setDynamic(false);
+
+        final VersionedProcessor registryProcessor = new VersionedProcessor();
+        registryProcessor.setComponentType(ComponentType.PROCESSOR);
+        registryProcessor.setIdentifier(versionedId);
+        registryProcessor.setProperties(Map.of(MigratingDynamicProcessor.OBSOLETE_PROPERTY, obsoleteValue));
+        registryProcessor.setPropertyDescriptors(Map.of(MigratingDynamicProcessor.OBSOLETE_PROPERTY, obsoleteDescriptor));
+
+        final InstantiatedVersionedProcessor localProcessor = new InstantiatedVersionedProcessor(instanceId, groupId);
+        localProcessor.setComponentType(ComponentType.PROCESSOR);
+        localProcessor.setIdentifier(versionedId);
+        localProcessor.setProperties(Map.of(MigratingDynamicProcessor.NEW_PROPERTY, localStrategy));
+
+        final FlowDifference propertyRemoved = new StandardFlowDifference(
+                DifferenceType.PROPERTY_REMOVED,
+                registryProcessor,
+                localProcessor,
+                MigratingDynamicProcessor.OBSOLETE_PROPERTY,
+                obsoleteValue,
+                null,
+                "Obsolete property removed");
+
+        final FlowDifference propertyAdded = new StandardFlowDifference(
+                DifferenceType.PROPERTY_ADDED,
+                registryProcessor,
+                localProcessor,
+                MigratingDynamicProcessor.NEW_PROPERTY,
+                null,
+                localStrategy,
+                "Replacement property added");
+
+        final List<FlowDifference> differences = List.of(propertyRemoved, propertyAdded);
+        final FlowDifferenceFilters.EnvironmentalChangeContext context = FlowDifferenceFilters.buildEnvironmentalChangeContext(differences, flowManager);
+
+        assertTrue(FlowDifferenceFilters.isEnvironmentalChange(propertyRemoved, null, flowManager, context));
+        if (addedIsEnvironmental) {
+            assertTrue(FlowDifferenceFilters.isEnvironmentalChange(propertyAdded, null, flowManager, context));
+        } else {
+            assertFalse(FlowDifferenceFilters.isEnvironmentalChange(propertyAdded, null, flowManager, context));
+        }
     }
 
     @Test
@@ -1171,6 +1317,39 @@ public class TestFlowDifferenceFilters {
 
         // The dedicated predicate, on the other hand, excludes the public-port name change so opt-in callers can preserve the local name.
         assertFalse(FlowDifferenceFilters.FILTER_PUBLIC_PORT_NAME_CHANGES.test(nameChange));
+    }
+
+    @DynamicProperty(name = "Schema", value = "Avro schema", description = "Named schema")
+    private static class MigratingDynamicProcessor extends AbstractProcessor {
+        static final String OBSOLETE_PROPERTY = "Validate Field Names";
+        static final String NEW_PROPERTY = "Validation Strategy";
+        static final String VALIDATE = "VALIDATE";
+        static final String NONE = "NONE";
+
+        static final PropertyDescriptor VALIDATION_STRATEGY = new PropertyDescriptor.Builder()
+                .name(NEW_PROPERTY)
+                .defaultValue(VALIDATE)
+                .required(true)
+                .build();
+
+        @Override
+        public void onTrigger(final ProcessContext context, final ProcessSession session) {
+            // No-op for testing
+        }
+
+        @Override
+        protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+            return List.of(VALIDATION_STRATEGY);
+        }
+
+        @Override
+        public void migrateProperties(final PropertyConfiguration config) {
+            if (config.hasProperty(OBSOLETE_PROPERTY) && config.isPropertySet(OBSOLETE_PROPERTY)) {
+                final boolean validate = Boolean.parseBoolean(config.getRawPropertyValue(OBSOLETE_PROPERTY).orElse(Boolean.TRUE.toString()));
+                config.setProperty(NEW_PROPERTY, validate ? VALIDATE : NONE);
+            }
+            config.removeProperty(OBSOLETE_PROPERTY);
+        }
     }
 
     @DynamicProperty(name = "Dynamic Property", value = "Value", description = "Allows dynamic properties")
