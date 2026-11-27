@@ -20,6 +20,7 @@ package org.apache.nifi.cluster.manager;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.controller.status.RunStatus;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.PermissionsDTO;
@@ -46,6 +47,30 @@ class ControllerServiceEntityMergerTest {
         ControllerServiceEntityMerger merger = new ControllerServiceEntityMerger();
         merger.merge(nodeOneControllerserviceEntity, entityMap);
         assertEquals("Stopped", nodeOneControllerserviceEntity.getStatus().getRunStatus());
+    }
+
+    @Test
+    void testMergeState() {
+        assertMergedState(ControllerServiceState.ENABLED, ControllerServiceState.ENABLED, ControllerServiceState.ENABLED);
+        assertMergedState(ControllerServiceState.DISABLED, ControllerServiceState.DISABLED, ControllerServiceState.DISABLED);
+        assertMergedState(ControllerServiceState.DISABLING, ControllerServiceState.DISABLED, ControllerServiceState.DISABLING);
+        assertMergedState(ControllerServiceState.ENABLING, ControllerServiceState.ENABLED, ControllerServiceState.ENABLING);
+        assertMergedState(ControllerServiceState.DISABLING, ControllerServiceState.ENABLED, ControllerServiceState.DISABLED);
+        assertMergedState(ControllerServiceState.DISABLING, ControllerServiceState.DISABLED, ControllerServiceState.ENABLED);
+    }
+
+    private void assertMergedState(final ControllerServiceState expectedState, final ControllerServiceState clientState, final ControllerServiceState otherNodeState) {
+        final ControllerServiceEntity clientEntity = getControllerServiceEntity("id1", RunStatus.Stopped.name(), ValidationStatus.VALID.name());
+        clientEntity.getComponent().setState(clientState.name());
+        final ControllerServiceEntity otherNodeEntity = getControllerServiceEntity("id1", RunStatus.Stopped.name(), ValidationStatus.VALID.name());
+        otherNodeEntity.getComponent().setState(otherNodeState.name());
+
+        final Map<NodeIdentifier, ControllerServiceEntity> entityMap = new HashMap<>();
+        entityMap.put(getNodeIdentifier("node1", 8000), clientEntity);
+        entityMap.put(getNodeIdentifier("node2", 8010), otherNodeEntity);
+
+        new ControllerServiceEntityMerger().merge(clientEntity, entityMap);
+        assertEquals(expectedState.name(), clientEntity.getComponent().getState());
     }
 
     private NodeIdentifier getNodeIdentifier(final String id, final int port) {

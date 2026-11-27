@@ -78,20 +78,26 @@ public class ControllerServiceEntityMerger implements ComponentEntityMerger<Cont
         final Map<String, Map<NodeIdentifier, PropertyDescriptorDTO>> propertyDescriptorMap = new HashMap<>();
 
         String state = null;
+        boolean enabledOnAnyNode = false;
+        boolean disabledOnAnyNode = false;
         for (final Map.Entry<NodeIdentifier, ControllerServiceDTO> nodeEntry : dtoMap.entrySet()) {
             final ControllerServiceDTO nodeControllerService = nodeEntry.getValue();
 
             // consider the node controller service if authorized
             if (nodeControllerService != null) {
                 final NodeIdentifier nodeId = nodeEntry.getKey();
+                final String nodeState = nodeControllerService.getState();
 
                 if (state == null) {
-                    if (ControllerServiceState.DISABLING.name().equals(nodeControllerService.getState())) {
+                    if (ControllerServiceState.DISABLING.name().equals(nodeState)) {
                         state = ControllerServiceState.DISABLING.name();
-                    } else if (ControllerServiceState.ENABLING.name().equals(nodeControllerService.getState())) {
+                    } else if (ControllerServiceState.ENABLING.name().equals(nodeState)) {
                         state = ControllerServiceState.ENABLING.name();
                     }
                 }
+
+                enabledOnAnyNode |= ControllerServiceState.ENABLED.name().equals(nodeState);
+                disabledOnAnyNode |= ControllerServiceState.DISABLED.name().equals(nodeState);
 
                 nodeReferencingComponentsMap.put(nodeId, nodeControllerService.getReferencingComponents());
 
@@ -121,6 +127,11 @@ public class ControllerServiceEntityMerger implements ComponentEntityMerger<Cont
 
         // merge the referencing components
         mergeControllerServiceReferences(referencingComponents, nodeReferencingComponentsMap);
+
+        // Nodes that disagree on a stable state have not all completed a transition, so report the service as transitioning
+        if (state == null && enabledOnAnyNode && disabledOnAnyNode) {
+            state = ControllerServiceState.DISABLING.name();
+        }
 
         // store the 'transition' state is applicable
         if (state != null) {
