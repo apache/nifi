@@ -99,5 +99,50 @@ describe('OverlappingConnectionsBannerComponent', () => {
 
             expect(emitSpy).toHaveBeenCalledWith(groups[0]);
         });
+
+        it('should hide the banner when dismissed', async () => {
+            const groups: OverlappingConnectionGroup[] = [
+                { sourceComponentId: 'a', destinationComponentId: 'b', connectionIds: ['c1', 'c2'] }
+            ];
+            const { fixture } = await setup({ overlappingGroups: groups });
+
+            fixture.nativeElement.querySelector('button[aria-label="Dismiss"]').click();
+            fixture.detectChanges();
+
+            expect(fixture.nativeElement.querySelector('.overlapping-connections-banner')).toBeNull();
+        });
+
+        it('should show the banner again when the overlapping connections change after dismissal', async () => {
+            const groups: OverlappingConnectionGroup[] = [
+                { sourceComponentId: 'a', destinationComponentId: 'b', connectionIds: ['c1', 'c2'] }
+            ];
+            const { fixture } = await setup({ overlappingGroups: groups });
+
+            fixture.nativeElement.querySelector('button[aria-label="Dismiss"]').click();
+            fixture.detectChanges();
+
+            fixture.componentRef.setInput('overlappingGroups', [
+                ...groups,
+                { sourceComponentId: 'c', destinationComponentId: 'd', connectionIds: ['c3', 'c4'] }
+            ]);
+            fixture.detectChanges();
+
+            expect(fixture.nativeElement.querySelector('.overlapping-connections-banner')).toBeTruthy();
+        });
+
+        it('should keep the banner hidden when the same overlapping connections are re-evaluated', async () => {
+            const groups: OverlappingConnectionGroup[] = [
+                { sourceComponentId: 'a', destinationComponentId: 'b', connectionIds: ['c1', 'c2'] }
+            ];
+            const { fixture } = await setup({ overlappingGroups: groups });
+
+            fixture.nativeElement.querySelector('button[aria-label="Dismiss"]').click();
+            fixture.detectChanges();
+
+            fixture.componentRef.setInput('overlappingGroups', [{ ...groups[0] }]);
+            fixture.detectChanges();
+
+            expect(fixture.nativeElement.querySelector('.overlapping-connections-banner')).toBeNull();
+        });
     });
 });

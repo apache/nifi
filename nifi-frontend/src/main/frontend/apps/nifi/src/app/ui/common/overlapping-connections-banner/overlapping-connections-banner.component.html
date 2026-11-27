@@ -15,11 +15,14 @@
   ~ limitations under the License.
   -->
 
-@if (overlappingGroups().length > 0) {
+@if (visible()) {
     <div class="overlapping-connections-banner flex flex-col gap-1.5 px-4 py-3 rounded-sm text-sm">
         <div class="flex items-center gap-2">
             <i class="fa fa-warning caution-color"></i>
             <span class="font-medium"> {{ overlappingGroups().length }} overlapping connection group(s) detected </span>
+            <button mat-icon-button type="button" class="ml-auto -my-2 -mr-2" aria-label="Dismiss" (click)="dismiss()">
+                <i class="fa fa-times" aria-hidden="true"></i>
+            </button>
         </div>
         <span>
             Overlapping connections with no bend points appear as a single connection. Add a bend point to separate
