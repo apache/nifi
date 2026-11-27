@@ -102,6 +102,19 @@ class SocketUtilsTest {
     }
 
     @Test
+    void testGetRemoteHostStringAcceptedSocket() throws IOException {
+        final InetAddress loopbackAddress = InetAddress.getLoopbackAddress();
+        try (
+                ServerSocket serverSocket = new ServerSocket(0, 1, loopbackAddress);
+                Socket clientSocket = new Socket(loopbackAddress, serverSocket.getLocalPort());
+                Socket acceptedSocket = serverSocket.accept()
+        ) {
+            assertTrue(clientSocket.isConnected());
+            assertEquals(loopbackAddress.getHostAddress(), SocketUtils.getRemoteHostString(acceptedSocket));
+        }
+    }
+
+    @Test
     void testCreateSocketConnected() throws IOException {
         try (ServerSocket serverSocket = new ServerSocket(0, 1, InetAddress.getLoopbackAddress())) {
             final SocketConfiguration config = new SocketConfiguration();

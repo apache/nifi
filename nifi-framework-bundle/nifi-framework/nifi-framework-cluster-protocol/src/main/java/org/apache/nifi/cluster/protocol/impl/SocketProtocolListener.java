@@ -133,7 +133,7 @@ public class SocketProtocolListener extends SocketListener implements ProtocolLi
         String hostname = null;
         try {
             final StopWatch stopWatch = new StopWatch(true);
-            hostname = socket.getInetAddress().getHostName();
+            hostname = SocketUtils.getRemoteHostString(socket);
             final String requestId = UUID.randomUUID().toString();
             logger.debug("Received request {} from {}", requestId, hostname);
 
