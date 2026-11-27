@@ -30,6 +30,7 @@ import org.apache.nifi.web.api.dto.DtoFactory;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.ProcessorRunStatusDetailsDTO;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
+import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupRecursivity;
@@ -40,7 +41,9 @@ import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -100,6 +103,47 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
             .map(componentEntity -> serviceFacade.getControllerService(componentEntity.getId(), false))
             .map(dtoFactory::createAffectedComponentEntity)
             .collect(Collectors.toSet());
+    }
+
+    @Override
+    public boolean waitForConnectionQueuesEmpty(final URI exampleUri, final Set<String> connectionIds, final Pause pause) throws LifecycleManagementException {
+        if (connectionIds.isEmpty()) {
+            return true;
+        }
+
+        final List<String> orderedConnectionIds = connectionIds.stream()
+                .sorted(Comparator.naturalOrder())
+                .toList();
+        final Map<String, Integer> queuedFlowFilesByConnection = new LinkedHashMap<>();
+
+        boolean continuePolling = true;
+        while (continuePolling) {
+            boolean allQueuesEmpty = true;
+            for (final String connectionId : orderedConnectionIds) {
+                final Integer queuedFlowFiles = getQueuedFlowFiles(connectionId);
+                queuedFlowFilesByConnection.put(connectionId, queuedFlowFiles);
+                if (queuedFlowFiles == null || queuedFlowFiles != 0) {
+                    allQueuesEmpty = false;
+                    break;
+                }
+            }
+
+            if (allQueuesEmpty) {
+                return true;
+            }
+
+            continuePolling = pause.pause();
+        }
+
+        return false;
+    }
+
+    private Integer getQueuedFlowFiles(final String connectionId) {
+        final ConnectionEntity connectionEntity = serviceFacade.getConnection(connectionId);
+        final Integer queuedFlowFiles = connectionEntity == null || connectionEntity.getStatus() == null || connectionEntity.getStatus().getAggregateSnapshot() == null
+                ? null : connectionEntity.getStatus().getAggregateSnapshot().getFlowFilesQueued();
+        logger.debug("Removed connection drain queue poll [connectionId={}, queuedFlowFiles={}]", connectionId, queuedFlowFiles);
+        return queuedFlowFiles;
     }
 
     private void startComponents(final String processGroupId, final Map<String, Revision> componentRevisions, final Map<String, AffectedComponentEntity> affectedComponents, final Pause pause,

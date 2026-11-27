@@ -26,7 +26,9 @@ import jakarta.ws.rs.core.Response.Status;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
+import org.apache.nifi.cluster.coordination.http.replication.AsyncClusterResponse;
 import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.exception.NoClusterCoordinatorException;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
@@ -41,10 +43,12 @@ import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.DtoFactory;
 import org.apache.nifi.web.api.dto.ProcessorRunStatusDetailsDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
+import org.apache.nifi.web.api.dto.status.ConnectionStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ProcessGroupStatusSnapshotDTO;
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.ComponentEntity;
+import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
@@ -60,15 +64,20 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class ClusterReplicationComponentLifecycle implements ComponentLifecycle {
     private static final Logger logger = LoggerFactory.getLogger(ClusterReplicationComponentLifecycle.class);
+    private static final long QUEUE_WAIT_SLICE_MILLIS = 250L;
 
     private ClusterCoordinator clusterCoordinator;
     private RequestReplicator requestReplicator;
@@ -631,6 +640,58 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
             .collect(Collectors.toSet());
     }
 
+    @Override
+    public boolean waitForConnectionQueuesEmpty(final URI originalUri, final Set<String> connectionIds, final Pause pause) throws LifecycleManagementException {
+        if (connectionIds.isEmpty()) {
+            return true;
+        }
+
+        final Set<NodeIdentifier> expectedNodes = new HashSet<>(clusterCoordinator.getNodeIdentifiers(NodeConnectionState.CONNECTED));
+        final List<String> orderedConnectionIds = connectionIds.stream()
+            .sorted(Comparator.naturalOrder())
+            .toList();
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        boolean continuePolling = true;
+        while (continuePolling) {
+            if (isQueueWaitExpired(pause)) {
+                return false;
+            }
+
+            boolean allQueuesEmpty = true;
+            for (final String connectionId : orderedConnectionIds) {
+                if (isQueueWaitExpired(pause)) {
+                    return false;
+                }
+
+                final ConnectionStatusResult connectionStatusResult = getConnectionStatus(user, originalUri, connectionId, expectedNodes, pause);
+                final Integer queuedFlowFiles = getQueuedFlowFiles(connectionStatusResult.entity());
+                logger.debug("Removed connection drain cluster queue poll [connectionId={}, queuedFlowFiles={}, expectedNodeIds={}, involvedNodeIds={}, "
+                                + "completedNodeIds={}, successfulNodeIds={}, expectedCoverage={}]", connectionId, queuedFlowFiles,
+                        getExpectedNodeIds(expectedNodes), connectionStatusResult.involvedNodeIds(), connectionStatusResult.completedNodeIds(),
+                        connectionStatusResult.successfulNodeIds(), connectionStatusResult.hasExpectedCoverage());
+                if (!connectionStatusResult.hasExpectedCoverage() || queuedFlowFiles == null || queuedFlowFiles != 0) {
+                    allQueuesEmpty = false;
+                }
+
+                if (!allQueuesEmpty) {
+                    break;
+                }
+            }
+
+            if (allQueuesEmpty) {
+                if (isQueueWaitExpired(pause)) {
+                    return false;
+                }
+
+                return true;
+            }
+
+            continuePolling = pause.pause();
+        }
+
+        return false;
+    }
+
     private boolean waitForControllerServiceValidation(final NiFiUser user, final URI originalUri, final String groupId,
                                                        final Set<String> serviceIds, final Pause pause)
             throws InterruptedException {
@@ -678,6 +739,182 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
         }
 
         return false;
+    }
+
+    private ConnectionStatusResult getConnectionStatus(final NiFiUser user, final URI originalUri, final String connectionId,
+                                                       final Set<NodeIdentifier> expectedNodes, final Pause pause) throws LifecycleManagementException {
+        if (isQueueWaitExpired(pause)) {
+            return new ConnectionStatusResult(null, false, Collections.emptySet(), Collections.emptySet(), Collections.emptySet());
+        }
+
+        final URI connectionUri;
+        try {
+            connectionUri = new URI(originalUri.getScheme(), originalUri.getUserInfo(), originalUri.getHost(), originalUri.getPort(),
+                "/nifi-api/connections/" + connectionId, null, originalUri.getFragment());
+        } catch (final URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
+
+        try {
+            final AsyncClusterResponse clusterResponse = getRequestReplicator().replicate(expectedNodes, user, HttpMethod.GET, connectionUri,
+                Collections.emptyMap(), Collections.emptyMap(), true, false);
+
+            final NodeResponse mergedResponse = awaitMergedResponse(clusterResponse, pause);
+            final ConnectionEntity connectionEntity = mergedResponse != null && mergedResponse.is2xx()
+                ? getResponseEntity(mergedResponse, ConnectionEntity.class)
+                : null;
+            final Set<String> involvedNodeIds = getNodeIds(clusterResponse.getNodesInvolved());
+            final Set<String> completedNodeIds = getNodeIds(clusterResponse.getCompletedNodeIdentifiers());
+            final Set<String> successfulNodeIds = getSuccessfulNodeIds(clusterResponse.getCompletedNodeResponses());
+
+            if (!hasExpectedSuccessfulNodeCoverage(clusterResponse, expectedNodes)) {
+                return new ConnectionStatusResult(connectionEntity, false, involvedNodeIds, completedNodeIds, successfulNodeIds);
+            }
+
+            if (mergedResponse == null || !mergedResponse.is2xx()) {
+                return new ConnectionStatusResult(connectionEntity, false, involvedNodeIds, completedNodeIds, successfulNodeIds);
+            }
+
+            return new ConnectionStatusResult(connectionEntity, true, involvedNodeIds, completedNodeIds, successfulNodeIds);
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new LifecycleManagementException("Interrupted while waiting for connection queues to empty");
+        }
+    }
+
+    private NodeResponse awaitMergedResponse(final AsyncClusterResponse clusterResponse, final Pause pause) throws InterruptedException {
+        final long queueWaitSliceNanos = TimeUnit.MILLISECONDS.toNanos(QUEUE_WAIT_SLICE_MILLIS);
+        if (pause instanceof CancellableTimedPause cancellableTimedPause) {
+            while (true) {
+                if (cancellableTimedPause.isCancelled()) {
+                    return null;
+                }
+
+                final long remainingWaitNanos = cancellableTimedPause.getRemainingPauseNanos();
+                if (remainingWaitNanos <= 0L) {
+                    return null;
+                }
+
+                final NodeResponse mergedResponse = clusterResponse.awaitMergedResponse(Math.min(queueWaitSliceNanos, remainingWaitNanos), TimeUnit.NANOSECONDS);
+                if (cancellableTimedPause.isCancelled() || cancellableTimedPause.getRemainingPauseNanos() <= 0L) {
+                    return null;
+                }
+
+                if (mergedResponse != null) {
+                    return mergedResponse;
+                }
+            }
+        }
+
+        return clusterResponse.awaitMergedResponse(QUEUE_WAIT_SLICE_MILLIS, TimeUnit.MILLISECONDS);
+    }
+
+    private boolean isQueueWaitExpired(final Pause pause) {
+        if (!(pause instanceof CancellableTimedPause cancellableTimedPause)) {
+            return false;
+        }
+
+        return cancellableTimedPause.isCancelled() || cancellableTimedPause.getRemainingPauseNanos() <= 0L;
+    }
+
+    private record ConnectionStatusResult(ConnectionEntity entity, boolean hasExpectedCoverage, Set<String> involvedNodeIds,
+                                        Set<String> completedNodeIds, Set<String> successfulNodeIds) {
+    }
+
+    private boolean hasExpectedSuccessfulNodeCoverage(final AsyncClusterResponse clusterResponse, final Set<NodeIdentifier> expectedNodes) {
+        if (clusterResponse == null || !clusterResponse.isComplete()) {
+            return false;
+        }
+
+        final Set<String> expectedNodeIds = getExpectedNodeIds(expectedNodes);
+        if (!hasExpectedNodeIds(clusterResponse.getNodesInvolved(), expectedNodeIds)) {
+            return false;
+        }
+
+        if (!hasExpectedNodeIds(clusterResponse.getCompletedNodeIdentifiers(), expectedNodeIds)) {
+            return false;
+        }
+
+        final Set<NodeResponse> completedNodeResponses = clusterResponse.getCompletedNodeResponses();
+        if (completedNodeResponses == null || completedNodeResponses.size() != expectedNodes.size()) {
+            return false;
+        }
+
+        final Set<String> completedNodeIds = new HashSet<>();
+        for (final NodeResponse nodeResponse : completedNodeResponses) {
+            if (nodeResponse == null || nodeResponse.getNodeId() == null || !nodeResponse.is2xx()) {
+                return false;
+            }
+
+            final String nodeId = nodeResponse.getNodeId().getId();
+            if (nodeId == null || !expectedNodeIds.contains(nodeId) || !completedNodeIds.add(nodeId)) {
+                return false;
+            }
+        }
+
+        return completedNodeIds.equals(expectedNodeIds);
+    }
+
+    private Set<String> getExpectedNodeIds(final Set<NodeIdentifier> expectedNodes) {
+        final Set<String> expectedNodeIds = new HashSet<>();
+        for (final NodeIdentifier nodeIdentifier : expectedNodes) {
+            if (nodeIdentifier == null || nodeIdentifier.getId() == null || !expectedNodeIds.add(nodeIdentifier.getId())) {
+                throw new IllegalArgumentException("Expected connected nodes must contain unique node identifiers");
+            }
+        }
+
+        return expectedNodeIds;
+    }
+
+    private boolean hasExpectedNodeIds(final Set<NodeIdentifier> actualNodes, final Set<String> expectedNodeIds) {
+        if (actualNodes == null || actualNodes.size() != expectedNodeIds.size()) {
+            return false;
+        }
+
+        final Set<String> actualNodeIds = new HashSet<>();
+        for (final NodeIdentifier actualNode : actualNodes) {
+            if (actualNode == null || actualNode.getId() == null || !actualNodeIds.add(actualNode.getId())) {
+                return false;
+            }
+        }
+
+        return actualNodeIds.equals(expectedNodeIds);
+    }
+
+    private Integer getQueuedFlowFiles(final ConnectionEntity entity) {
+        if (entity == null || entity.getStatus() == null || entity.getStatus().getAggregateSnapshot() == null) {
+            return null;
+        }
+
+        final ConnectionStatusSnapshotDTO aggregateSnapshot = entity.getStatus().getAggregateSnapshot();
+        return aggregateSnapshot.getFlowFilesQueued();
+    }
+
+    private Set<String> getNodeIds(final Set<NodeIdentifier> nodeIdentifiers) {
+        if (nodeIdentifiers == null) {
+            return Collections.emptySet();
+        }
+
+        return nodeIdentifiers.stream()
+                .filter(Objects::nonNull)
+                .map(NodeIdentifier::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+    }
+
+    private Set<String> getSuccessfulNodeIds(final Set<NodeResponse> nodeResponses) {
+        if (nodeResponses == null) {
+            return Collections.emptySet();
+        }
+
+        return nodeResponses.stream()
+                .filter(Objects::nonNull)
+                .filter(NodeResponse::is2xx)
+                .map(NodeResponse::getNodeId)
+                .filter(Objects::nonNull)
+                .map(NodeIdentifier::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
     }
 
     private boolean isControllerServiceValidationComplete(final Set<ControllerServiceEntity> controllerServiceEntities, final Map<String, AffectedComponentEntity> affectedComponents) {

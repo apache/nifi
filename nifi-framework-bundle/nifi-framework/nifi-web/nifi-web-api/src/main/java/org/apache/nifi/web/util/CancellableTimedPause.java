@@ -35,15 +35,23 @@ public class CancellableTimedPause implements Pause {
         cancelled = true;
     }
 
+    public boolean isCancelled() {
+        return cancelled;
+    }
+
+    public long getRemainingPauseNanos() {
+        return Math.max(0L, expirationNanoTime - System.nanoTime());
+    }
+
     @Override
     public boolean pause() {
-        if (cancelled) {
+        if (isCancelled()) {
             return false;
         }
 
         long sysTime = System.nanoTime();
         final long maxWaitTime = System.nanoTime() + pauseNanos;
-        while (sysTime < maxWaitTime && !cancelled) {
+        while (sysTime < maxWaitTime && !isCancelled()) {
             try {
                 TimeUnit.NANOSECONDS.sleep(pauseNanos);
             } catch (final InterruptedException ie) {
@@ -54,7 +62,7 @@ public class CancellableTimedPause implements Pause {
             sysTime = System.nanoTime();
         }
 
-        return sysTime < expirationNanoTime && !cancelled;
+        return sysTime < expirationNanoTime && !isCancelled();
     }
 
 }
