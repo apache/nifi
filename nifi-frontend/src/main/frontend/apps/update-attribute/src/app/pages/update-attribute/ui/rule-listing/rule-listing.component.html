@@ -75,6 +75,14 @@
                 }
             </div>
         </div>
+        @if (filteredRulesList.length > 0) {
+            <div class="flex gap-x-2 right-2 items-center justify-end">
+                <a (click)="expandAll()">Expand All</a>
+                <span>|</span>
+                <a (click)="collapseAll()">Collapse All</a>
+            </div>
+        }
+
         @if (!newRule && rulesList.length > 0) {
             <div class="tertiary-color font-medium">
                 Displaying {{ filteredRulesList.length }} of {{ rulesList.length }}
